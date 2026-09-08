@@ -1,0 +1,38 @@
+{
+  "name": "ritu",
+  "version": "1.0.0",
+  "description": "Marketplace search app using LLM spec derivation",
+  "private": false,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --webpack",
+    "start": "next start",
+    "lint": "npx biome lint .",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^4.0.56",
+    "ai": "^7.0.90",
+    "next": "^16.3.4",
+    "p-limit": "^7.3.2",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "tutti-api": "^2.1.1",
+    "ricardo-api": "^1.1.0",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.4",
+    "playwright": "^1.62.1",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.13",
+    "typescript": "^5",
+    "vitest": "^4.1.11"
+  }
+}
