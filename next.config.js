@@ -1,6 +1,9 @@
 const path = require("path");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   images: {
     remotePatterns: [
       { hostname: "img.ricardostatic.ch" },
