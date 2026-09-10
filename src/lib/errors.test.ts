@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ValidationError, SpecDerivationError, MarketplaceError } from "./errors";
+import { MarketplaceError, SpecDerivationError, ValidationError } from "./errors";
 
 describe("errors contracts", () => {
   it("ValidationError propagates fields and raw", () => {

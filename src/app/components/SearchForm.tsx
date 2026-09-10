@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import type { Platform, SearchResult } from "@/lib/types";
+import { useEffect, useState } from "react";
 import de from "@/dictionaries/de.json";
 import en from "@/dictionaries/en.json";
+import type { Platform, SearchResult } from "@/lib/types";
 
 const dictionaries = { de, en } as const;
 
@@ -29,8 +29,7 @@ type Props = {
 export default function SearchForm({ onSearch, isLoading, error }: Props) {
   const [locale, setLocale] = useState<Locale>("de");
   useEffect(() => {
-    const stored =
-      typeof window !== "undefined" ? localStorage.getItem("locale") : null;
+    const stored = typeof window !== "undefined" ? localStorage.getItem("locale") : null;
     if (stored === "en" || stored === "de") setLocale(stored);
     const handleChange = (e: Event) => {
       const detail = (e as CustomEvent<Locale>).detail;
@@ -74,7 +73,13 @@ export default function SearchForm({ onSearch, isLoading, error }: Props) {
         setOriginalQuery("");
         return;
       }
-      if (askQuestionParam && response && "clarifyingQuestion" in response && response.clarifyingQuestion && !("derivedSpec" in response)) {
+      if (
+        askQuestionParam &&
+        response &&
+        "clarifyingQuestion" in response &&
+        response.clarifyingQuestion &&
+        !("derivedSpec" in response)
+      ) {
         setClarifyingQuestion(response.clarifyingQuestion);
         setOriginalQuery(trimmedQuery);
         setClarifyingAnswer("");
@@ -140,14 +145,18 @@ export default function SearchForm({ onSearch, isLoading, error }: Props) {
       </div>
       {awaitingClarification && clarifyingQuestion ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:bg-amber-900/20 dark:border-amber-800 space-y-3">
-          <p className="text-sm font-medium text-amber-800 dark:text-amber-300">{String((dict as Record<string, unknown>).clarification_title ?? "One more question")}</p>
+          <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+            {String((dict as Record<string, unknown>).clarification_title ?? "One more question")}
+          </p>
           <p className="text-sm text-zinc-700 dark:text-zinc-200">{clarifyingQuestion}</p>
           <textarea
             value={clarifyingAnswer}
             onChange={(e) => setClarifyingAnswer(e.target.value)}
             rows={2}
             disabled={isLoading}
-            placeholder={String((dict as Record<string, unknown>).clarification_answer_placeholder ?? "Your answer")}
+            placeholder={String(
+              (dict as Record<string, unknown>).clarification_answer_placeholder ?? "Your answer",
+            )}
             className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm dark:bg-zinc-800 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
           />
           <button
@@ -156,18 +165,24 @@ export default function SearchForm({ onSearch, isLoading, error }: Props) {
             onClick={handleConfirm}
             className="rounded-full bg-black px-6 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
           >
-            {isLoading ? String((dict as Record<string, unknown>).asking_clarification ?? "Asking a clarifying question…") : String((dict as Record<string, unknown>).confirm ?? "Confirm")}
+            {isLoading
+              ? String(
+                  (dict as Record<string, unknown>).asking_clarification ??
+                    "Asking a clarifying question…",
+                )
+              : String((dict as Record<string, unknown>).confirm ?? "Confirm")}
           </button>
         </div>
-      )
-      : (
+      ) : (
         <div className="flex items-center gap-3">
           <button
             type="submit"
             disabled={isLoading || query.trim().length < 3 || awaitingClarification}
             className="rounded-full bg-black px-6 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
           >
-            {isLoading ? String((dict as Record<string, unknown>).searching_marketplaces ?? "Searching…") : String((dict as Record<string, unknown>).search_button ?? "Search")}
+            {isLoading
+              ? String((dict as Record<string, unknown>).searching_marketplaces ?? "Searching…")
+              : String((dict as Record<string, unknown>).search_button ?? "Search")}
           </button>
           <button
             type="button"
@@ -175,9 +190,18 @@ export default function SearchForm({ onSearch, isLoading, error }: Props) {
             onClick={handleSearchWithQuestion}
             className="rounded-full border border-zinc-300 bg-white px-6 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
-            {String((dict as Record<string, unknown>).search_with_question ?? "Search with question")}
+            {String(
+              (dict as Record<string, unknown>).search_with_question ?? "Search with question",
+            )}
           </button>
-          {isLoading && <span className="text-sm text-zinc-500">{String((dict as Record<string, unknown>).searching_marketplaces ?? "Searching marketplaces…")}</span>}
+          {isLoading && (
+            <span className="text-sm text-zinc-500">
+              {String(
+                (dict as Record<string, unknown>).searching_marketplaces ??
+                  "Searching marketplaces…",
+              )}
+            </span>
+          )}
         </div>
       )}
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}

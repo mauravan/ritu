@@ -3,27 +3,29 @@ import { buildRicardoUrl, searchRicardo } from "./ricardo";
 
 vi.mock("ricardo-api", () => {
   return {
-    RicardoClient: vi.fn(function () {
-      return {
-        search: vi.fn(function () {
-          return {
-            fetch: vi.fn(async () => ({
-              listings: [
+    RicardoClient: vi.fn(() => ({
+      search: vi.fn(() => ({
+        fetch: vi.fn(async () => ({
+          listings: [
+            {
+              listingID: "1200985678",
+              id: "1200985678",
+              title: "Intel NUC 16GB RAM Mini PC",
+              buyNowPrice: 69,
+              bidPrice: 50,
+              images: [
                 {
-                  listingID: "1200985678",
-                  id: "1200985678",
-                  title: "Intel NUC 16GB RAM Mini PC",
-                  buyNowPrice: 69,
-                  bidPrice: 50,
-                  images: [{ rendition: { src: "https://img.ricardostatic.ch/images/abc/t_265x200/myimage.jpg" } }],
-                  image_url: "https://img.ricardostatic.ch/images/abc/t_265x200/myimage.jpg",
+                  rendition: {
+                    src: "https://img.ricardostatic.ch/images/abc/t_265x200/myimage.jpg",
+                  },
                 },
               ],
-            })),
-          };
-        }),
-      };
-    }),
+              image_url: "https://img.ricardostatic.ch/images/abc/t_265x200/myimage.jpg",
+            },
+          ],
+        })),
+      })),
+    })),
   };
 });
 

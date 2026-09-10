@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import SearchForm from "./SearchForm";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // biome-ignore lint/correctness/noUnusedImports: used in props if needed
 import type { Platform } from "@/lib/types";
+import SearchForm from "./SearchForm";
 
 describe("SearchForm regression - clarification reset", () => {
   beforeEach(() => {
@@ -29,7 +29,9 @@ describe("SearchForm regression - clarification reset", () => {
     // regular search works
     fireEvent.change(screen.getByRole("textbox"), { target: { value: "laptop" } });
     fireEvent.click(screen.getByRole("button", { name: /search$/i }));
-    await waitFor(() => expect(onSearch).toHaveBeenCalledWith("laptop", "both", { askQuestion: false }));
+    await waitFor(() =>
+      expect(onSearch).toHaveBeenCalledWith("laptop", "both", { askQuestion: false }),
+    );
 
     // ask clarifying question
     callIndex = 0;

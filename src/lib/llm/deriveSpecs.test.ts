@@ -76,7 +76,9 @@ describe("deriveSpecs", () => {
 
 describe("deriveSpecs contract assertions", () => {
   it("ValidationError from generateObject propagates with fields and raw", async () => {
-    mockGenerateObject.mockRejectedValue(new ValidationError("bad", { fields: { f: ["v"] }, raw: { x: 1 } }));
+    mockGenerateObject.mockRejectedValue(
+      new ValidationError("bad", { fields: { f: ["v"] }, raw: { x: 1 } }),
+    );
     await expect(deriveSpecs("test")).rejects.toBeInstanceOf(ValidationError);
   });
 

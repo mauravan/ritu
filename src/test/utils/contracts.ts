@@ -1,4 +1,4 @@
-import { z } from "zod";
+import type { z } from "zod";
 
 export function expectSchema<T>(obj: unknown, schema: z.ZodSchema<T>): T {
   const result = schema.safeParse(obj);

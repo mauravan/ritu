@@ -1,14 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { RerankSchema } from "./rerank";
 import { expectSchema } from "../../test/utils/contracts";
+import { RerankSchema } from "./rerank";
 
 describe("rerank contracts", () => {
   it("validates rerank output shape", () => {
     const result = expectSchema(
       {
-        results: [
-          { id: "p1", relevance: 85, relevant: true, reason: "strong" },
-        ],
+        results: [{ id: "p1", relevance: 85, relevant: true, reason: "strong" }],
       },
       RerankSchema,
     );

@@ -46,7 +46,6 @@ describe("aggregate contracts", () => {
     expect(result[0]?.priceChf).toBe(500); // first id wins in exact-id dedup
   });
 
-
   it("empty array returns []", () => {
     expect(aggregate([])).toEqual([]);
   });

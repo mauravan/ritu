@@ -15,7 +15,12 @@ export default function SearchView() {
   const handleSearch = async (
     query: string,
     platform: Platform,
-    extra?: { askQuestion?: boolean; clarifyingAnswer?: string; clarifyingQuestion?: string; originalQuery?: string },
+    extra?: {
+      askQuestion?: boolean;
+      clarifyingAnswer?: string;
+      clarifyingQuestion?: string;
+      originalQuery?: string;
+    },
   ): Promise<SearchResult | { clarifyingQuestion: string } | undefined> => {
     console.log(`[RITU][CLIENT] search start query="${query}" platform=${platform}`);
     setIsLoading(true);
@@ -24,7 +29,11 @@ export default function SearchView() {
     try {
       const res = await fetch("/api/search", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-api-key": (globalThis.process?.env?.RITU_API_KEY ?? process?.env?.RITU_API_KEY ?? "dummy-key-123") },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key":
+            globalThis.process?.env?.RITU_API_KEY ?? process?.env?.RITU_API_KEY ?? "dummy-key-123",
+        },
         body: JSON.stringify({
           query,
           platform,

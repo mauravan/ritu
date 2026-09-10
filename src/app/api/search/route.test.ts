@@ -1,5 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
-import { POST } from "./route";
+import { describe, expect, it } from "vitest";
 
 describe("search route contracts", () => {
   it("returns structured errors, not raw Error", async () => {
