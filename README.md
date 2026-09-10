@@ -11,7 +11,6 @@ Single-page website that takes natural-language input, derives hardware specs vi
 
 ```bash
 npm install
-npx playwright install chromium   # required for tutti anonymous search
 cp .env.example .env
 # edit .env: set LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
 npm run dev    # http://localhost:3000
@@ -25,20 +24,19 @@ Browser → Next.js 16 (App Router)
 ```
 
 - `src/lib/llm` — single LLM call
-- `src/lib/marketplaces` — ricardo fetch JSON API, tutti fetch+Playwright fallback
+- `src/lib/marketplaces` — ricardo fetch JSON API, tutti fetch via tutti-api
 - `src/lib/ranking.ts` — pure specScore/valueScore + tags
 - `src/app/api/search` — orchestrator (only place composing all)
 
 ## Known limitations
 
-- tutti is Cloudflare-protected; anonymous search uses Playwright headless. Authenticated fetch may still require Playwright fallback.
 - No DB — stateless per-request
 - No caching — stateless per-request
 
 ## Scripts
 
 - `npm run dev` — dev server
-- `npm run build` — production build (requires playwright binary)
+- `npm run build` — production build
 - `npm run start` — serve build
 - `npm test` — vitest run
 - `npm run lint` — biome lint

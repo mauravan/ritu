@@ -1,0 +1,22 @@
+{
+  "title": "RITU",
+  "description": "Hardware finden via ricardo.ch & tutti.ch",
+  "header_title": "RITU",
+  "search_placeholder": "Beschreibe dein Bedürfnis (z. B. Laptop für Schule)",
+  "search_button": "Suchen",
+  "language_label": "Sprache",
+  "language_english": "Englisch",
+  "language_german": "Deutsch",
+  "footer_note": "Ergebnisse von ricardo.ch & tutti.ch, nicht verbunden",
+  "platform_both": "Beide",
+  "platform_ricardo": "Ricardo",
+  "platform_tutti": "Tutti",
+  "searching_marketplaces": "Suche Marktplätze…",
+  "marketplace_label": "Marktplatz",
+  "search_with_question": "Mit Frage suchen",
+  "clarification_title": "Noch eine Frage",
+  "clarification_prompt": "Beantworte diese Frage, um die Suche zu verfeinern:",
+  "clarification_answer_placeholder": "Deine Antwort",
+  "confirm": "Bestätigen",
+  "asking_clarification": "Frage wird gestellt…"
+}

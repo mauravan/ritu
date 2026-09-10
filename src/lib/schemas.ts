@@ -2,8 +2,8 @@ import { z } from "zod";
 
 export const DerivedSpecSchema = z
   .object({
-    category: z.string(),
-    summary: z.string(),
+    category: z.string().describe("canonical product noun, lowercase singular"),
+    summary: z.string().describe("one sentence summary of user need"),
     requirements: z.array(
       z
         .object({
@@ -11,10 +11,12 @@ export const DerivedSpecSchema = z
           value: z.string(),
           importance: z.enum(["required", "preferred"]),
         })
-        .strict(),
+        .describe("requirement entry"),
     ),
-    searchQueries: z.array(z.string()),
-    excludedTerms: z.array(z.string()),
+    searchQueries: z
+      .array(z.string())
+      .describe("2 short marketplace search terms, primary product only"),
+    excludedTerms: z.array(z.string()).describe("accessory terms to exclude, 5-10 terms"),
   })
   .strict();
 
@@ -55,52 +57,18 @@ export const SearchResultSchema = z
     derivedSpec: DerivedSpecSchema,
     queries: z.array(MarketplaceQuerySchema),
     products: z.array(RankedProductSchema),
-    authUsed: z.object({ ricardo: z.boolean(), tutti: z.boolean() }).strict(),
+    platform: z.enum(["both", "ricardo", "tutti"]).optional(),
+    clarifyingQuestion: z.string().optional(),
+    clarifyingAnswer: z.string().optional(),
+    originalQuery: z.string().optional(),
   })
   .strict();
 
-export const AuthContextSchema = z
-  .union([
-    z.null(),
-    z
-      .object({
-        ricardo: z
-          .union([
-            z.null(),
-            z
-              .object({
-                cookies: z.string(),
-                expiresAt: z.string(),
-              })
-              .strict(),
-          ])
-          .nullable(),
-        tutti: z
-          .union([
-            z.null(),
-            z
-              .object({
-                cookies: z.string(),
-                storageState: z.string().optional(),
-                expiresAt: z.string(),
-              })
-              .strict(),
-          ])
-          .nullable(),
-      })
-      .strict(),
-  ])
-  .nullable();
-
 export const SearchRequestSchema = z.object({
   query: z.string().min(3).max(500),
-});
-
-export const AuthSessionRequestSchema = z.object({
-  marketplace: z.enum(["ricardo", "tutti"]),
-  cookieString: z.string().min(1),
-});
-
-export const AuthLogoutRequestSchema = z.object({
-  marketplace: z.enum(["ricardo", "tutti"]),
+  platform: z.enum(["both", "ricardo", "tutti"]).optional().default("both"),
+  askQuestion: z.boolean().optional().default(false),
+  clarifyingAnswer: z.string().optional(),
+  clarifyingQuestion: z.string().optional(),
+  originalQuery: z.string().optional(),
 });

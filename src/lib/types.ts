@@ -17,6 +17,8 @@ export type RawProduct = {
   condition: string | null;
   imageUrl: string | null;
   url: string;
+  bidPriceChf?: number | null;
+  listedPriceChf?: number | null;
   location: string | null;
   raw: unknown;
 };
@@ -27,21 +29,35 @@ export type RankedProduct = RawProduct & {
   tags: Tag[];
   matchedRequirements: string[];
   reasons: string[];
+  relevance?: number;
+  llmReason?: string;
+  hybridScore?: number;
+  rankingMeta?: {
+    breakdown: string[];
+    valueDerivedFrom: string;
+  };
 };
 
-export type Tag = "best value" | "best specs" | "cheapest" | "best condition" | "balanced";
+export type Tag =
+  | "best value"
+  | "best specs"
+  | "cheapest"
+  | "best condition"
+  | "balanced"
+  | "best overall";
+
+export type Platform = "both" | "ricardo" | "tutti";
 
 export type SearchResult = {
   input: string;
   derivedSpec: DerivedSpec;
   queries: MarketplaceQuery[];
   products: RankedProduct[];
-  authUsed: { ricardo: boolean; tutti: boolean };
+  platform?: Platform;
+  clarifyingQuestion?: string;
+  clarifyingAnswer?: string;
+  originalQuery?: string;
 };
 
-export type AuthContext = {
-  ricardo: { cookies: string; expiresAt: string } | null;
-  tutti: { cookies: string; storageState?: string; expiresAt: string } | null;
-} | null;
-
-export type AuthStatus = { ricardo: boolean; tutti: boolean };
+// biome-ignore lint/complexity/noBannedTypes: placeholder response type
+export type ClarifyingResponse = {};

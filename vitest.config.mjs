@@ -1,0 +1,19 @@
+import path from "node:path";
+export default {
+  resolve: {
+    alias: {
+      "@": path.resolve("./src"),
+    },
+  },
+  test: {
+    environment: "jsdom",
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json", "html"],
+      thresholds: {
+        branches: { "src/lib/**": 100, global: 80 },
+        statements: { "src/lib/**": 100, global: 80 },
+      },
+    },
+  },
+};

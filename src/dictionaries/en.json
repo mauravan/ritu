@@ -1,0 +1,22 @@
+{
+  "title": "RITU",
+  "description": "Find hardware via ricardo.ch & tutti.ch",
+  "header_title": "RITU",
+  "search_placeholder": "Describe what you need (e.g. laptop for school)",
+  "search_button": "Search",
+  "language_label": "Language",
+  "language_english": "English",
+  "language_german": "German",
+  "platform_both": "Both",
+  "platform_ricardo": "Ricardo",
+  "platform_tutti": "Tutti",
+  "searching_marketplaces": "Searching marketplaces…",
+  "marketplace_label": "Marketplace",
+  "search_with_question": "Search with question",
+  "clarification_title": "One more question",
+  "clarification_prompt": "Answer this question to refine your search:",
+  "clarification_answer_placeholder": "Your answer",
+  "confirm": "Confirm",
+  "asking_clarification": "Asking a clarifying question…",
+  "footer_note": "Results from ricardo.ch & tutti.ch, not affiliated"
+}

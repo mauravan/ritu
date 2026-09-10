@@ -1,7 +1,10 @@
 import type { RawProduct } from "./types";
 
 function normalizeTitle(title: string): string {
-  return title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 export function aggregate(groups: RawProduct[][]): RawProduct[] {

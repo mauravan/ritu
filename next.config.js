@@ -1,3 +1,4 @@
+const path = require("path");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -9,6 +10,13 @@ const nextConfig = {
     unoptimized: false,
   },
   output: "standalone",
-  serverExternalPackages: ["playwright"],
+  outputFileTracingRoot: path.join(__dirname, ".."),
+  experimental: {
+    externalDir: true,
+  },
+  transpilePackages: ["ricardo-api"],
+  env: {
+    RITU_API_KEY: process.env.RITU_API_KEY || "dummy-key-123",
+  },
 };
 module.exports = nextConfig;

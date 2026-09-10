@@ -1,8 +1,14 @@
 export class ValidationError extends Error {
   code = "validation_error" as const;
-  constructor(message: string) {
+  fields?: Record<string, string[]>;
+  raw?: unknown;
+  constructor(message: string, opts?: { fields?: Record<string, string[]>; raw?: unknown }) {
     super(message);
     this.name = "ValidationError";
+    if (opts) {
+      this.fields = opts.fields;
+      this.raw = opts.raw;
+    }
   }
 }
 
@@ -22,13 +28,5 @@ export class MarketplaceError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "MarketplaceError";
-  }
-}
-
-export class AuthError extends Error {
-  code = "auth_error" as const;
-  constructor(message: string) {
-    super(message);
-    this.name = "AuthError";
   }
 }

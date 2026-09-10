@@ -1,10 +1,9 @@
-import { generateObject, generateText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
-import { DerivedSpecSchema } from "../schemas";
+import { generateObject, generateText } from "ai";
 import { ValidationError } from "../errors";
-import { SYSTEM_PROMPT } from "./prompt";
+import { DerivedSpecSchema } from "../schemas";
 import type { DerivedSpec } from "../types";
-
+import { SYSTEM_PROMPT } from "./prompt";
 
 function tryParseJsonFromText(text: string): unknown | null {
   // Try direct JSON, then extract from markdown code block or first { ... }
@@ -47,7 +46,9 @@ export async function deriveSpecs(input: string, clarifyingAnswer?: string): Pro
 
   // Attempt 1: structured generateObject
   try {
-    console.log(`[RITU][LLM] deriveSpecs input="${trimmed.slice(0, 120)}" model=${model} baseURL=${baseURL}`);
+    console.log(
+      `[RITU][LLM] deriveSpecs input="${trimmed.slice(0, 120)}" model=${model} baseURL=${baseURL}`,
+    );
     const start = Date.now();
     const { object } = await generateObject({
       model: openai(model),
@@ -84,13 +85,20 @@ export async function deriveSpecs(input: string, clarifyingAnswer?: string): Pro
         console.log(`[RITU][LLM] generateText fallback ok category=${validated.data.category}`);
         return validated.data;
       } else {
-        console.warn(`[RITU][LLM] generateText JSON failed validation: ${JSON.stringify(validated.error.flatten())}`);
+        const flat = validated.error.flatten();
+        throw new ValidationError("LLM response validation failed", {
+          fields: flat.fieldErrors as Record<string, string[]>,
+          raw: parsed,
+        });
       }
     } else {
       console.warn("[RITU][LLM] generateText fallback could not parse JSON");
     }
   } catch (err) {
-    console.warn(`[RITU][LLM] generateText fallback failed: ${err instanceof Error ? err.message : String(err)}`);
+    if (err instanceof ValidationError) throw err;
+    console.warn(
+      `[RITU][LLM] generateText fallback failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
   throw new Error("All LLM attempts failed — cannot derive specs");
 }

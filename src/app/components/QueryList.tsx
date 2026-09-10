@@ -31,8 +31,16 @@ export default function QueryList({ queries }: { queries: MarketplaceQuery[] }) 
   return (
     <div className="rounded-lg border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-6 space-y-4">
       <h3 className="text-sm font-semibold">Marketplace Queries</h3>
-      {renderGroup("ricardo", ricardo, "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100")}
-      {renderGroup("tutti", tutti, "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100")}
+      {renderGroup(
+        "ricardo",
+        ricardo,
+        "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
+      )}
+      {renderGroup(
+        "tutti",
+        tutti,
+        "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100",
+      )}
     </div>
   );
 }

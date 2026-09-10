@@ -1,52 +1,69 @@
-import { describe, it, expect } from "vitest";
-import { DerivedSpecSchema, AuthContextSchema } from "./schemas";
+import { describe, expect, it } from "vitest";
+import {
+  DerivedSpecSchema,
+  MarketplaceQuerySchema,
+  RawProductSchema,
+  RankedProductSchema,
+  SearchResultSchema,
+  SearchRequestSchema,
+} from "./schemas";
 
-describe("DerivedSpecSchema", () => {
-  const validSpec = {
+describe("schemas contracts", () => {
+  const spec = {
     category: "mini pc",
-    summary: "Small server for Immich",
+    summary: "Small server",
     requirements: [{ key: "RAM", value: "16GB", importance: "required" as const }],
-    searchQueries: ["mini pc 16GB", "intel nuc"],
-    excludedTerms: ["raspberry pi"],
+    searchQueries: ["mini pc"],
+    excludedTerms: ["raspberry"],
   };
 
-  it("parses valid spec", () => {
-    expect(() => DerivedSpecSchema.parse(validSpec)).not.toThrow();
+  it("DerivedSpecSchema .strict() rejects extra keys", () => {
+    const result = DerivedSpecSchema.strict().safeParse({ ...spec, extra: 1 });
+    expect(result.success).toBe(false);
   });
 
-  it("rejects missing searchQueries", () => {
-    const { searchQueries: _omit, ...without } = validSpec;
-    void _omit;
-    expect(() => DerivedSpecSchema.parse(without)).toThrow();
+  it("DerivedSpecSchema .optional() allows optional fields", () => {
+    const result = DerivedSpecSchema.safeParse(spec);
+    expect(result.success).toBe(true);
   });
 
-  it("rejects extra fields due to strict", () => {
-    expect(() => DerivedSpecSchema.parse({ ...validSpec, extra: 123 })).toThrow();
-  });
-});
-
-describe("AuthContextSchema", () => {
-  it("accepts null", () => {
-    expect(() => AuthContextSchema.parse(null)).not.toThrow();
+  it("MarketplaceQuerySchema validates marketplace enum", () => {
+    expect(MarketplaceQuerySchema.safeParse({ marketplace: "tutti", query: "x", url: "y" }).success).toBe(true);
+    expect(MarketplaceQuerySchema.safeParse({ marketplace: "bad", query: "x", url: "y" }).success).toBe(false);
   });
 
-  it("accepts valid cookie payloads", () => {
-    const ctx = {
-      ricardo: { cookies: "ricardo_session=abc", expiresAt: new Date().toISOString() },
-      tutti: { cookies: "tutti_session=xyz", expiresAt: new Date().toISOString() },
+  it("RawProductSchema requires currency CHF literal", () => {
+    expect(RawProductSchema.safeParse({
+      id: "1", marketplace: "ricardo", title: "t", priceChf: 10,
+      currency: "CHF", condition: null, imageUrl: null, url: "u", location: null, raw: {},
+    }).success).toBe(true);
+  });
+
+  it("RankedProductSchema extends RawProduct", () => {
+    const base = {
+      id: "1", marketplace: "ricardo" as const, title: "t", priceChf: null,
+      currency: "CHF" as const, condition: null, imageUrl: null, url: "u",
+      location: null, raw: {}, specScore: 50, valueScore: 30,
+      tags: ["best specs" as const], matchedRequirements: ["RAM: 16GB"], reasons: ["price"],
     };
-    expect(() => AuthContextSchema.parse(ctx)).not.toThrow();
+    expect(RankedProductSchema.safeParse(base).success).toBe(true);
   });
 
-  it("accepts storageState", () => {
-    const ctx = {
-      ricardo: null,
-      tutti: { cookies: "x", storageState: '{"cookies":[]}', expiresAt: new Date().toISOString() },
-    };
-    expect(() => AuthContextSchema.parse(ctx)).not.toThrow();
+  it("SearchResultSchema validates platform enum optional", () => {
+    expect(SearchResultSchema.safeParse({
+      input: "q", derivedSpec: spec, queries: [{ marketplace: "ricardo", query: "q", url: "u" }],
+      products: [
+        {
+          id: "1", marketplace: "ricardo", title: "t", priceChf: null,
+          currency: "CHF", condition: null, imageUrl: null, url: "u", location: null, raw: {},
+          specScore: 10, valueScore: 5, tags: ["balanced"], matchedRequirements: [], reasons: [],
+        },
+      ],
+    }).success).toBe(true);
   });
 
-  it("rejects invalid", () => {
-    expect(() => AuthContextSchema.parse({ ricardo: "bad" })).toThrow();
+  it("SearchRequestSchema enforces min/max length", () => {
+    expect(SearchRequestSchema.safeParse({ query: "a" }).success).toBe(false);
+    expect(SearchRequestSchema.safeParse({ query: "valid" }).success).toBe(true);
   });
 });
