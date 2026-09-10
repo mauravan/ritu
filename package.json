@@ -9,7 +9,7 @@
     "start": "next start",
     "format": "biome format .",
     "lint": "biome lint .",
-    "test": "vitest run --coverage",
+    "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
