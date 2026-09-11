@@ -51,8 +51,7 @@ function extractGpuNumber(text: string): number | null {
 export interface RankingSignal {
   name: string;
   select(spec: DerivedSpec, product: RawProduct): boolean;
-  score(spec: DerivedSpec, product: RawProduct): number;
-  compare?(spec: DerivedSpec, products: RawProduct[]): Map<string, number>;
+  compare(spec: DerivedSpec, products: RawProduct[]): Map<string, number>;
 }
 
 export const signalRegistry = new Map<string, RankingSignal>();
@@ -61,36 +60,11 @@ export const signalRegistry = new Map<string, RankingSignal>();
 signalRegistry.set("gpu", {
   name: "gpu",
   select: (spec: DerivedSpec) => spec.requirements.some((r) => isGpuRequirement(r.value)),
-  score: (spec: DerivedSpec, product: RawProduct) => {
-    const requiredGpu = spec.requirements
-      .filter((r) => isGpuRequirement(r.value))
-      .map((r) => extractGpuNumber(r.value))
-      .filter((n): n is number => n !== null);
-    if (requiredGpu.length === 0) return 0;
-    const titleGpu = extractGpuNumber(product.title.toLowerCase());
-    const rawTextLower =
-      typeof product.raw === "string"
-        ? product.raw.toLowerCase()
-        : JSON.stringify(product.raw ?? "").toLowerCase();
-    const rawGpu = extractGpuNumber(rawTextLower);
-    const productGpu = titleGpu !== null ? titleGpu : rawGpu !== null ? rawGpu : null;
-    if (productGpu === null) return 0;
-    const bestRequired = Math.max(...requiredGpu);
-    const pSeries = Math.floor(productGpu / 100);
-    const pModel = productGpu % 100;
-    const rSeries = Math.floor(bestRequired / 100);
-    const rModel = bestRequired % 100;
-    let comparison: number;
-    if (pSeries !== rSeries) comparison = pSeries - rSeries;
-    else comparison = pModel - rModel;
-    return comparison >= 0 ? 5 : -5;
-  },
   compare: (spec: DerivedSpec, products: RawProduct[]): Map<string, number> => {
     const requiredGpu = spec.requirements
       .filter((r) => isGpuRequirement(r.value))
       .map((r) => extractGpuNumber(r.value))
       .filter((n): n is number => n !== null);
-    if (requiredGpu.length === 0) return new Map();
     const bestRequired = Math.max(...requiredGpu);
     const result = new Map<string, number>();
     for (const product of products) {
@@ -161,15 +135,12 @@ export function rankProductsUnified(
   // Pre-compute compare results for applicable compare signals (once per signal)
   const compareResultsBySignal = new Map<string, Map<string, number>>();
   for (const [, signal] of signalRegistry) {
-    if (signal.compare) {
-      const applies = products.some((pr) => signal.select(spec, pr));
-      if (applies) {
-        const res = signal.compare(spec, products);
-        compareResultsBySignal.set(signal.name, res);
-      }
+    const applies = products.some((pr) => signal.select(spec, pr));
+    if (applies) {
+      const res = signal.compare(spec, products);
+      compareResultsBySignal.set(signal.name, res);
     }
   }
-
   const scored = products.map((p) => {
     const titleLower = p.title.toLowerCase();
     const rawText =
@@ -203,21 +174,12 @@ export function rankProductsUnified(
     for (const [, signal] of signalRegistry) {
       if (signal.select(spec, p)) {
         const weight = (weights[signal.name] ?? 1) as number;
-        if (signal.compare) {
-          const compareRes = compareResultsBySignal.get(signal.name);
-          if (compareRes?.has(p.id)) {
-            const weight = (weights[signal.name] ?? 1) as number;
-            const compareValue = (compareRes.get(p.id) ?? 0) * weight;
-            if (compareValue !== 0) {
-              score += compareValue;
-              signalBreakdown.push({ name: signal.name, score: compareValue });
-            }
-          }
-        } else {
-          const bonus = signal.score(spec, p) * weight;
-          if (bonus !== 0) {
-            score += bonus;
-            signalBreakdown.push({ name: signal.name, score: bonus });
+        const compareRes = compareResultsBySignal.get(signal.name);
+        if (compareRes?.has(p.id)) {
+          const compareValue = (compareRes.get(p.id) ?? 0) * weight;
+          if (compareValue !== 0) {
+            score += compareValue;
+            signalBreakdown.push({ name: signal.name, score: compareValue });
           }
         }
       }
@@ -264,7 +226,7 @@ export function rankProductsUnified(
   const llmEntries = hasLLM
     ? scaledResults.map((w) => {
         const s = llmScores?.get(w.product.id);
-        if (s && s.relevant !== false && (s.relevance ?? 0) >= 30) {
+        if (s && s.relevant !== false && s.relevance >= 30) {
           return s.relevance;
         }
         return 0;
@@ -279,7 +241,7 @@ export function rankProductsUnified(
   let finalValueW = valueW;
 
   if (hasLLM) {
-    llmW = 1 - specW - valueW >= 0 ? 1 - specW - valueW : 0.4;
+    llmW = 1 - specW - valueW;
   } else {
     // Redistribute when LLM absent
     finalSpecW = 0.6;
@@ -287,12 +249,7 @@ export function rankProductsUnified(
     llmW = 0;
   }
 
-  // Ensure weights sum to 1 (approximate) to keep scale meaningful
-  const totalW = finalSpecW + finalValueW + llmW;
-  if (totalW > 0 && Math.abs(totalW - 1) > 0.001) {
-    finalSpecW = finalSpecW / totalW;
-    finalValueW = finalValueW / totalW;
-  }
+
 
   // 6. Hybrid score and sort
   const enriched = scaledResults.map((w, idx) => {
@@ -376,20 +333,15 @@ export function rankProductsUnified(
     enriched[maxValueIdx]?.tags.push("best value");
   } else {
     let secondMax = -Infinity;
-    let secondIdx = -1;
+    let secondIdx = 0;
     for (let i = 0; i < enriched.length; i++) {
       if (i === maxValueIdx) continue;
-      if (enriched[i]?.valueScore > secondMax) {
-        secondMax = enriched[i]?.valueScore;
+      if ((enriched[i]?.valueScore ?? -Infinity) > secondMax) {
+        secondMax = enriched[i]?.valueScore ?? -Infinity;
         secondIdx = i;
       }
     }
-    if (secondIdx !== -1 && secondMax >= 0) {
-      enriched[secondIdx]?.tags.push("best value");
-    } else {
-      if (!enriched[maxValueIdx]?.tags.includes("best value"))
-        enriched[maxValueIdx]?.tags.push("best value");
-    }
+    enriched[secondIdx]?.tags.push("best value");
   }
 
   // cheapest
@@ -431,9 +383,8 @@ export function rankProductsUnified(
     let bestHIdx = -1;
     for (let i = 0; i < enriched.length; i++) {
       if (enriched[i]?.tags.length > 0) continue;
-      const s = enriched[i]?.specScore;
-      const v = enriched[i]?.valueScore;
-      if (s <= 0 || v <= 0) continue;
+      const s = enriched[i]?.specScore ?? 1;
+      const v = enriched[i]?.valueScore ?? 1;
       const h = 2 / (1 / s + 1 / v);
       if (h > bestH) {
         bestH = h;
@@ -458,6 +409,14 @@ export function rankProductsUnified(
       enriched[maxHybridIdx]?.tags.push("best overall");
     }
   }
-
   return enriched;
 }
+
+// Test exports
+export {
+  tokenize,
+  keywordsFromSpec,
+  isGpuRequirement,
+  extractGpuNumber,
+};
+

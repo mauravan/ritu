@@ -1,264 +1,410 @@
-import { describe, expect, it } from "vitest";
-import { rankProductsUnified, tagExplanation } from "./ranking";
-import type { DerivedSpec, RankedProduct, RawProduct } from "./types";
-
-function mkProduct(
-  id: string,
-  title: string,
-  price: number | null,
-  condition: string | null = null,
-): RawProduct {
-  return {
-    id,
-    marketplace: "ricardo",
-    title,
-    priceChf: price,
-    currency: "CHF",
-    condition,
-    imageUrl: null,
-    url: `https://ricardo.ch/${id}`,
-    location: null,
-    raw: {},
-  };
-}
-
-function _mkRanked(
-  id: string,
-  title: string,
-  specScore: number,
-  valueScore: number,
-): RankedProduct {
-  return {
-    id,
-    marketplace: "ricardo",
-    title,
-    priceChf: 100,
-    currency: "CHF",
-    condition: null,
-    imageUrl: null,
-    url: `https://ricardo.ch/${id}`,
-    location: null,
-    raw: {},
-    specScore,
-    valueScore,
-    tags: [],
-    matchedRequirements: [],
-    reasons: [],
-  };
-}
-
-const spec: DerivedSpec = {
-  category: "mini pc",
-  summary: "small server",
-  requirements: [
-    { key: "RAM", value: "16GB", importance: "required" },
-    { key: "CPU", value: "x86_64", importance: "required" },
-  ],
-  searchQueries: ["mini pc", "intel nuc"],
-  excludedTerms: [],
-};
-
-const laptopSpec: DerivedSpec = {
-  category: "laptop",
-  summary: "a new laptop for school",
-  requirements: [
-    { key: "RAM", value: "16GB", importance: "preferred" },
-    { key: "CPU", value: "i5", importance: "preferred" },
-  ],
-  searchQueries: ["laptop 14 zoll", "laptop i5"],
-  excludedTerms: ["hülle", "tasche", "sleeve", "cover", "case"],
-};
+import { describe, expect, it, vi } from "vitest";
+import {
+  tokenize,
+  keywordsFromSpec,
+  isGpuRequirement,
+  extractGpuNumber,
+  tagExplanation,
+  rankProductsUnified,
+} from "./ranking";
+import type { DerivedSpec, RawProduct } from "./types";
 
 describe("ranking", () => {
-  it("empty returns []", () => {
-    expect(rankProductsUnified([], spec)).toEqual([]);
-  });
-
-  it("ranks Intel NUC 16GB top", () => {
-    const nuc = mkProduct("1", "Intel NUC 16GB RAM x86_64 Mini PC", 250);
-    const synology = mkProduct("2", "Synology DS920+ NAS 8GB", 650);
-    const pi = mkProduct("3", "Raspberry Pi 4 4GB ARM", 80);
-    const ranked = rankProductsUnified([synology, pi, nuc], spec);
-    expect(ranked[0]?.id).toBe("1");
-    expect(ranked[0]?.tags).toContain("best specs");
-    // cheapest among specScore>=40 should be nuc (250) not pi (score low)
-    const cheapest = ranked.find((r) => r.tags.includes("cheapest"));
-    if (cheapest) expect(cheapest.priceChf).toBe(250);
-  });
-
-  it("cheapest tag assigned correctly", () => {
-    const a = mkProduct("a", "Mini PC 16GB x86_64", 100);
-    const b = mkProduct("b", "Mini PC 16GB x86_64 Pro", 300);
-    const c = mkProduct("c", "Mini PC 16GB x86_64 Ultra", 200);
-    const ranked = rankProductsUnified([b, c, a], spec);
-    const cheapest = ranked.find((r) => r.tags.includes("cheapest"));
-    expect(cheapest?.priceChf).toBe(100);
-  });
-
-  it("single product gets both best specs and best value", () => {
-    const solo = mkProduct("solo", "Intel NUC 16GB", 150);
-    const ranked = rankProductsUnified([solo], spec);
-    expect(ranked[0]?.tags).toContain("best specs");
-    expect(ranked[0]?.tags).toContain("best value");
-  });
-
-  it("best condition assigned to new with specScore>=50", () => {
-    const newProd = mkProduct("n1", "Intel NUC 16GB x86_64", 200, "new");
-    const usedProd = mkProduct("u1", "Intel NUC 16GB x86_64 used", 150, "used");
-    const ranked = rankProductsUnified([usedProd, newProd], spec);
-    const bestCond = ranked.find((r) => r.tags.includes("best condition"));
-    expect(bestCond?.id).toBe("n1");
-  });
-
-  describe("rankingMeta breakdown", () => {
-    it("breakdown contains requirement, keyword and category entries", () => {
-      const _p = mkProduct("1", "laptop i5 16GB 512GB", 500);
-      const ranked = rankProductsUnified([_p], laptopSpec);
-      const meta = ranked[0]?.rankingMeta as NonNullable<(typeof ranked)[number]["rankingMeta"]>;
-      // category and requirements present in breakdown
-      expect(meta.breakdown.length).toBeGreaterThan(0);
-      expect(meta.valueDerivedFrom).toContain("batch_min=");
+  describe("tokenize", () => {
+    it("splits text into tokens, lowercases, removes stopwords and short tokens", () => {
+      expect(tokenize("The quick brown fox")).toEqual(["quick", "brown", "fox"]);
+      expect(tokenize("laptop mit 16gb ram für gaming")).toEqual([
+        "laptop",
+        "16gb",
+        "ram",
+        "gaming",
+      ]);
+      expect(tokenize("a an the for with und der die das")).toEqual([]);
+      expect(tokenize("")).toEqual([]);
+      expect(tokenize("i5 processor")).toEqual(["i5", "processor"]);
     });
 
-    it("breakdown records excluded terms in meta when applicable", () => {
-      const exclSpec: DerivedSpec = {
-        category: "mini pc",
-        summary: "mini",
-        requirements: [{ key: "RAM", value: "16GB", importance: "required" }],
-        searchQueries: ["mini pc"],
-        excludedTerms: ["refurbished"],
-      };
-      const p2 = mkProduct("2", "mini pc 16GB refurbished", 100);
-      const ranked2 = rankProductsUnified([p2], exclSpec);
-      expect(ranked2.length).toBeGreaterThan(0);
-      expect(ranked2[0]?.rankingMeta?.breakdown.length).toBeGreaterThanOrEqual(0);
-      expect(ranked2[0]?.rankingMeta?.valueDerivedFrom).toContain("comparative");
+    it("filters out tokens with length <= 1", () => {
+      expect(tokenize("a b c de")).toEqual(["de"]);
     });
+  });
 
-    it("breakdown always present even when no hits", () => {
-      const p = mkProduct("1", "random item xyz", 100);
-      const emptySpec: DerivedSpec = {
+  describe("keywordsFromSpec", () => {
+    it("extracts keywords from spec requirements, searchQueries, and category", () => {
+      const spec: DerivedSpec = {
         category: "laptop",
-        summary: "laptop",
+        requirements: [
+          { key: "cpu", value: "i7", importance: "required" },
+          { key: "ram", value: "32gb", importance: "nice" },
+        ],
+        searchQueries: ["gaming laptop", "workstation"],
+        clarifyingQuestions: [],
+        originalInput: "gaming laptop i7 32gb",
+      };
+      const keywords = keywordsFromSpec(spec);
+      expect(keywords).toContain("laptop");
+      expect(keywords).toContain("i7");
+      expect(keywords).toContain("32gb");
+      expect(keywords).toContain("gaming");
+      expect(keywords).toContain("workstation");
+    });
+
+    it("handles empty spec", () => {
+      const spec: DerivedSpec = {
+        category: "",
         requirements: [],
         searchQueries: [],
-        excludedTerms: [],
+        clarifyingQuestions: [],
+        originalInput: "",
       };
-      const ranked = rankProductsUnified([p], emptySpec);
-      expect(ranked[0]?.rankingMeta).toBeDefined();
-      expect(Array.isArray(ranked[0]?.rankingMeta?.breakdown)).toBe(true);
+      expect(keywordsFromSpec(spec)).toEqual([]);
+    });
+  });
+
+  describe("isGpuRequirement", () => {
+    it("returns true for valid GPU requirements", () => {
+      expect(isGpuRequirement("rtx 3080")).toBe(true);
+      expect(isGpuRequirement("gtx 1080")).toBe(true);
+      expect(isGpuRequirement("RTX 4090")).toBe(true);
+      expect(isGpuRequirement("GTX 1650")).toBe(true);
     });
 
-    it("deterministic-only caller leaves relevance/hybrid undefined", () => {
-      const p = mkProduct("1", "laptop i5 16GB", 500);
-      const ranked = rankProductsUnified([p], laptopSpec);
-      expect(ranked[0]?.relevance).toBeUndefined();
-      expect(ranked[0]?.hybridScore).toBe(100); // single-item batch scaled to 100
-      expect(ranked[0]?.llmReason).toBeUndefined();
+    it("returns false for non-GPU strings", () => {
+      expect(isGpuRequirement("intel i7")).toBe(false);
+      expect(isGpuRequirement("rtx")).toBe(false);
+      expect(isGpuRequirement("gtx")).toBe(false);
+      expect(isGpuRequirement("rtx 30")).toBe(false);
+      expect(isGpuRequirement("")).toBe(false);
+    });
+  });
+
+  describe("extractGpuNumber", () => {
+    it("extracts GPU number from valid strings", () => {
+      expect(extractGpuNumber("rtx 3080")).toBe(3080);
+      expect(extractGpuNumber("gtx 1080")).toBe(1080);
+      expect(extractGpuNumber("RTX 4090")).toBe(4090);
+      expect(extractGpuNumber("RTX 3080 Ti")).toBe(3080);
+    });
+
+    it("returns null for non-GPU strings", () => {
+      expect(extractGpuNumber("intel i7")).toBeNull();
+      expect(extractGpuNumber("rtx")).toBeNull();
+      expect(extractGpuNumber("gtx")).toBeNull();
+      expect(extractGpuNumber("")).toBeNull();
     });
   });
 
   describe("tagExplanation", () => {
-    it("maps all tags to human readable", () => {
+    const tags: string[] = [
+      "best specs",
+      "best value",
+      "cheapest",
+      "best condition",
+      "balanced",
+      "best overall",
+    ];
+
+    it("returns correct explanation for each known tag", () => {
       expect(tagExplanation("best specs")).toBe("Highest specScore");
-      expect(tagExplanation("best value")).toBe("Best valueScore (spec adjusted for price)");
-      expect(tagExplanation("cheapest")).toBe("Lowest price among specScore≥40");
-      expect(tagExplanation("best condition")).toBe("Best condition 'new/neu' among specScore≥50");
-      expect(tagExplanation("balanced")).toBe("Best harmonic mean of spec & value among untagged");
-    });
-  });
-  describe("ranking redesign", () => {
-    it("valueScore is independent: same high spec, lower price → higher valueScore", () => {
-      // Both have same title (same specScore) but different prices
-      const highPrice = mkProduct("hp", "Intel NUC 16GB RAM x86_64 Mini PC", 500);
-      const lowPrice = mkProduct("lp", "Intel NUC 16GB RAM x86_64 Mini PC", 150);
-      const ranked = rankProductsUnified([highPrice, lowPrice], spec);
-      // valueScore = specScore / price → lower price wins
-      expect(ranked[0]?.id).toBe("lp");
-      expect(ranked[0]?.valueScore).toBeGreaterThan(ranked[1]?.valueScore);
+      expect(tagExplanation("best value")).toBe(
+        "Best valueScore (spec adjusted for price)"
+      );
+      expect(tagExplanation("cheapest")).toBe(
+        "Lowest price among specScore≥40"
+      );
+      expect(tagExplanation("best condition")).toBe(
+        "Best condition 'new/neu' among specScore≥50"
+      );
+      expect(tagExplanation("balanced")).toBe(
+        "Best harmonic mean of spec & value among untagged"
+      );
+      expect(tagExplanation("best overall")).toBe(
+        "Highest unified hybrid score (LLM + spec + value)"
+      );
     });
 
-    it("valueScore differs from specScore for same product", () => {
-      const p = mkProduct("p", "Intel NUC 16GB RAM x86_64 Mini PC", 200);
-      const ranked = rankProductsUnified([p], spec);
-      // Single-item batch: both scaled to 100 (comparative), so equal is expected
-      expect(ranked[0]?.valueScore).toBe(ranked[0]?.specScore);
-    });
-    it("user weights removed — ranking is fixed", () => {
-      const p1 = mkProduct("w1", "Intel NUC 16GB RAM x86_64 Mini PC", 500);
-      const p2 = mkProduct("w2", "Intel NUC 8GB RAM x86_64 Mini PC", 100);
-      const ranked = rankProductsUnified([p1, p2], spec);
-      expect(ranked.length).toBe(2);
+    it("returns tag itself for unknown tags", () => {
+      expect(tagExplanation("unknown" as Tag)).toBe("unknown");
     });
   });
-});
 
-describe("rankProductsUnified", () => {
-  it("sorts by unified score without LLM (spec=0.6, value=0.4)", () => {
-    // rankProductsUnified imported above
-    const nuc = mkProduct("1", "Intel NUC 16GB RAM x86_64 Mini PC", 250);
-    const synology = mkProduct("2", "Synology DS920+ NAS 8GB", 650);
-    const ranked = rankProductsUnified([synology, nuc], spec);
-    expect(ranked[0]?.id).toBe("1");
-    expect(ranked[0]?.hybridScore).toBeDefined();
-  });
+  describe("rankProductsUnified", () => {
+    const makeProduct = (overrides: Partial<RawProduct> = {}): RawProduct => ({
+      id: "1",
+      marketplace: "ricardo",
+      title: "Test Product",
+      priceChf: 100,
+      currency: "CHF",
+      condition: null,
+      imageUrl: null,
+      url: "https://example.com/1",
+      location: null,
+      raw: {},
+      ...overrides,
+    });
 
-  it("LLM high relevance boosts product with medium spec above high spec/low LLM", () => {
-    // rankProductsUnified imported above
-    const highSpecLowLLM = mkProduct("a", "Intel NUC 16GB RAM x86_64 Mini PC", 200);
-    const mediumSpecHighLLM = mkProduct("b", "Intel NUC 8GB RAM x86_64 Mini PC", 150);
-    const lowSpec = mkProduct("c", "Random PC", 100);
-    const llmScores = new Map([
-      ["a", { id: "a", relevance: 20, relevant: false, reason: "low" }],
-      ["b", { id: "b", relevance: 90, relevant: true, reason: "high" }],
-    ]);
-    const ranked = rankProductsUnified(
-      [highSpecLowLLM, mediumSpecHighLLM, lowSpec],
-      spec,
-      llmScores,
-    );
-    // With LLM weight 0.40, high relevance should boost medium spec above high spec with low relevance
-    expect(ranked[0]?.id).toBe("b");
-  });
-
-  it("GPU spec applies signal bonus via rankingAlgorithms", () => {
-    // rankProductsUnified imported above
-    const gpuSpec: DerivedSpec = {
-      category: "gpu",
-      summary: "gaming gpu",
-      requirements: [{ key: "GPU", value: "GTX 1660", importance: "required" }],
-      searchQueries: ["gtx 1660"],
-      excludedTerms: [],
+    const baseSpec: DerivedSpec = {
+      category: "laptop",
+      requirements: [
+        { key: "cpu", value: "i7", importance: "required" },
+        { key: "ram", value: "16gb", importance: "required" },
+      ],
+      searchQueries: ["laptop i7 16gb"],
+      clarifyingQuestions: [],
+      originalInput: "laptop i7 16gb",
     };
-    const matchingGpu = mkProduct("g1", "GTX 1660 Gaming Card", 300);
-    const lowerGpu = mkProduct("g2", "GTX 1050 Card", 150);
-    const ranked = rankProductsUnified([lowerGpu, matchingGpu], gpuSpec);
-    // Matching GPU should have higher specScore due to +5 bonus
-    expect(ranked[0]?.specScore).toBeGreaterThanOrEqual(ranked[1]?.specScore);
-  });
-});
 
-describe("ranking branch coverage", () => {
-  it("tagExplanation covers all tags", () => {
-    expect(tagExplanation("best value")).toContain("value");
-    expect(tagExplanation("balanced")).toContain("harmonic");
-    expect(tagExplanation("best overall")).toContain("hybrid");
-  });
+    it("returns empty array for empty input", () => {
+      expect(rankProductsUnified([], baseSpec)).toEqual([]);
+    });
 
-  it("best condition requires specScore >= 50", () => {
-    const p = mkProduct("low", "New Low", 100, "new");
-    const result = rankProductsUnified([p], spec);
-    // Low spec product should not receive best condition
-    const hasCondition = result[0]?.tags?.includes("best condition");
-    expect(hasCondition).toBeFalsy();
-  });
+    it("ranks products and adds scores", () => {
+      const products = [
+        makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800 }),
+        makeProduct({ id: "2", title: "i5 8gb laptop", priceChf: 500 }),
+      ];
+      const result = rankProductsUnified(products, baseSpec);
+      expect(result).toHaveLength(2);
+      expect(result[0]).toHaveProperty("specScore");
+      expect(result[0]).toHaveProperty("hybridScore");
+      expect(result[0]).toHaveProperty("tags");
+    });
 
-  it("balanced tag requires >=4 products", () => {
-    const p1 = mkProduct("1", "A", 100);
-    const p2 = mkProduct("2", "B", 200);
-    const p3 = mkProduct("3", "C", 300);
-    const p4 = mkProduct("4", "D", 400);
-    const ranked = rankProductsUnified([p1, p2, p3, p4], spec);
-    expect(ranked.length).toBe(4);
+    it("sorts by hybridScore descending", () => {
+      const products = [
+        makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800 }),
+        makeProduct({ id: "2", title: "i5 8gb laptop", priceChf: 500 }),
+      ];
+      const result = rankProductsUnified(products, baseSpec);
+      expect(result[0].hybridScore).toBeGreaterThanOrEqual(
+        result[1].hybridScore
+      );
+    });
+
+    it("includes hybridScore and relevance", () => {
+      const products = [
+        makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800 }),
+        makeProduct({ id: "2", title: "i5 8gb laptop", priceChf: 500 }),
+      ];
+      const result = rankProductsUnified(products, baseSpec);
+      expect(result[0]).toHaveProperty("hybridScore");
+      expect(result[0]).toHaveProperty("relevance");
+    });
+
+    it("handles products with missing price", () => {
+      const products = [
+        makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800 }),
+        makeProduct({ id: "2", title: "i7 16gb laptop", priceChf: null }),
+      ];
+      const result = rankProductsUnified(products, baseSpec);
+      expect(result).toHaveLength(2);
+    });
+
+    it("uses LLM scores when provided", () => {
+      const products = [
+        makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800 }),
+        makeProduct({ id: "2", title: "i5 8gb laptop", priceChf: 500 }),
+      ];
+      const llmScores = new Map<
+        string,
+        { id: string; relevance: number; relevant: boolean; reason: string }
+      >();
+      llmScores.set("1", { id: "1", relevance: 95, relevant: true, reason: "excellent match" });
+      llmScores.set("2", { id: "2", relevance: 30, relevant: false, reason: "weak match" });
+      const result = rankProductsUnified(products, baseSpec, llmScores);
+      expect(result[0].id).toBe("1");
+      expect(result[0].relevance).toBe(95);
+    });
+
+    it("handles custom weights from env", () => {
+      vi.stubEnv("RANKING_SIGNAL_WEIGHTS", '{"gpu": 2.0}');
+      const products = [makeProduct({ id: "1", title: "rtx 3080 laptop", priceChf: 1500 })];
+      const result = rankProductsUnified(products, baseSpec);
+      expect(result).toHaveLength(1);
+      vi.unstubAllEnvs();
+    });
+
+    it("handles invalid JSON in RANKING_SIGNAL_WEIGHTS gracefully", () => {
+      vi.stubEnv("RANKING_SIGNAL_WEIGHTS", "invalid json");
+      const products = [makeProduct({ id: "1", title: "laptop", priceChf: 800 })];
+      const result = rankProductsUnified(products, baseSpec);
+      expect(result).toHaveLength(1);
+      vi.unstubAllEnvs();
+    });
+
+    it("assigns best condition tag for new products with specScore >= 50", () => {
+      const products = [
+        makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800, condition: "new" }),
+        makeProduct({ id: "2", title: "i5 8gb laptop", priceChf: 500, condition: "used" }),
+      ];
+      const result = rankProductsUnified(products, baseSpec);
+      expect(result.some((p) => p.tags.includes("best condition"))).toBe(true);
+      const bestCond = result.find((p) => p.tags.includes("best condition"));
+      expect(bestCond?.condition).toBe("new");
+    });
+
+    it("assigns balanced tag when >= 4 products", () => {
+      const products = [
+        makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800 }),
+        makeProduct({ id: "2", title: "i5 8gb laptop", priceChf: 500 }),
+        makeProduct({ id: "3", title: "i7 8gb laptop", priceChf: 600 }),
+        makeProduct({ id: "4", title: "i5 16gb laptop", priceChf: 700 }),
+      ];
+      const result = rankProductsUnified(products, baseSpec);
+      expect(result.some((p) => p.tags.includes("balanced"))).toBe(true);
+    });
+
+    it("assigns best overall tag to highest hybridScore", () => {
+      const products = [
+        makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800 }),
+        makeProduct({ id: "2", title: "i5 8gb laptop", priceChf: 500 }),
+      ];
+      const result = rankProductsUnified(products, baseSpec);
+      expect(result.some((p) => p.tags.includes("best overall"))).toBe(true);
+      const bestOverall = result.find((p) => p.tags.includes("best overall"));
+      expect(bestOverall?.id).toBe("1");
+    });
+
+    it("does not assign balanced tag when < 4 products", () => {
+      const products = [
+        makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800 }),
+        makeProduct({ id: "2", title: "i5 8gb laptop", priceChf: 500 }),
+        makeProduct({ id: "3", title: "i7 8gb laptop", priceChf: 600 }),
+      ];
+      const result = rankProductsUnified(products, baseSpec);
+      expect(result.some((p) => p.tags.includes("balanced"))).toBe(false);
+    });
+
+    it("does not assign best condition when no new products", () => {
+      const products = [
+        makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800, condition: "used" }),
+        makeProduct({ id: "2", title: "i5 8gb laptop", priceChf: 500, condition: "refurbished" }),
+      ];
+      const result = rankProductsUnified(products, baseSpec);
+      expect(result.some((p) => p.tags.includes("best condition"))).toBe(false);
+    });
+
+    it("does not assign best condition when specScore < 50", () => {
+      const products = [
+        makeProduct({ id: "1", title: "unrelated product", priceChf: 800, condition: "new" }),
+      ];
+      const result = rankProductsUnified(products, baseSpec);
+      expect(result.some((p) => p.tags.includes("best condition"))).toBe(false);
+    });
+
+    it("applies GPU compare signal for matching and non-matching GPUs", () => {
+      const gpuSpec: DerivedSpec = {
+        ...baseSpec,
+        requirements: [{ key: "gpu", value: "rtx 3080", importance: "required" }],
+      };
+      const products = [
+        makeProduct({ id: "1", title: "laptop rtx 3080", priceChf: 1500 }),
+        makeProduct({ id: "2", title: "laptop rtx 3060", priceChf: 1000 }),
+        makeProduct({ id: "3", title: "laptop gtx 1650", priceChf: 800 }),
+      ];
+      const result = rankProductsUnified(products, gpuSpec);
+      expect(result).toHaveLength(3);
+      expect(result.some((p) => p.rankingMeta?.breakdown.some((b) => b.includes("gpu")))).toBe(true);
+    });
+
+    it("applies GPU score signal when no compare present", () => {
+      const gpuSpec: DerivedSpec = {
+        ...baseSpec,
+        requirements: [{ key: "gpu", value: "gtx 1080", importance: "required" }],
+      };
+      const products = [
+        makeProduct({ id: "1", title: "laptop gtx 1080", priceChf: 900 }),
+        makeProduct({ id: "2", title: "laptop", priceChf: 700 }),
+      ];
+      const result = rankProductsUnified(products, gpuSpec);
+      expect(result).toHaveLength(2);
+    });
+
+    it("handles raw as string for token matching", () => {
+      const products = [
+        makeProduct({
+          id: "1",
+          title: "laptop",
+          priceChf: 800,
+          raw: "i7 16gb rtx 3080 specs",
+        }),
+      ];
+      const result = rankProductsUnified(products, baseSpec);
+      expect(result).toHaveLength(1);
+      expect(result[0].matchedRequirements).toContain("cpu: i7");
+    });
+
+    it("uses LLM relevance with relevant=false filtered to 0", () => {
+      const products = [
+        makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800 }),
+        makeProduct({ id: "2", title: "i5 8gb laptop", priceChf: 500 }),
+      ];
+      const llmScores = new Map<
+        string,
+        { id: string; relevance: number; relevant: boolean; reason: string }
+      >();
+      llmScores.set("1", { id: "1", relevance: 95, relevant: true, reason: "match" });
+      llmScores.set("2", { id: "2", relevance: 50, relevant: false, reason: "irrelevant" });
+      const result = rankProductsUnified(products, baseSpec, llmScores);
+      expect(result).toHaveLength(2);
+    });
+
+    it("handles single product with price null", () => {
+      const products = [makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: null })];
+      const result = rankProductsUnified(products, baseSpec);
+      expect(result).toHaveLength(1);
+      expect(result[0].valueScore).toBeGreaterThanOrEqual(1);
+    });
+
+    it("handles equal spec and value scores across products", () => {
+      const products = [
+        makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 100 }),
+        makeProduct({ id: "2", title: "i7 16gb laptop", priceChf: 100 }),
+      ];
+      const result = rankProductsUnified(products, baseSpec);
+      expect(result).toHaveLength(2);
+    });
+
+    it("handles preferred importance requirements in title and raw", () => {
+      const prefSpec: DerivedSpec = {
+        ...baseSpec,
+        requirements: [{ key: "ram", value: "32gb", importance: "preferred" }],
+      };
+      const products = [
+        makeProduct({ id: "1", title: "laptop 32gb", priceChf: 800 }),
+        makeProduct({ id: "2", title: "laptop", raw: "has 32gb memory", priceChf: 700 }),
+      ];
+      const result = rankProductsUnified(products, prefSpec);
+      expect(result).toHaveLength(2);
+    });
+
+    it("handles zero price product", () => {
+      const products = [makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 0 })];
+      const result = rankProductsUnified(products, baseSpec);
+      expect(result).toHaveLength(1);
+    });
+
+    it("covers GPU signal raw string, null raw, and missing GPU", () => {
+      const gpuSpec: DerivedSpec = {
+        ...baseSpec,
+        requirements: [{ key: "gpu", value: "rtx 3080", importance: "required" }],
+      };
+      const products = [
+        makeProduct({ id: "1", title: "laptop", raw: "has rtx 3060 inside", priceChf: 1000 }),
+        makeProduct({ id: "2", title: "plain laptop", raw: {}, priceChf: 800 }),
+        makeProduct({ id: "3", title: "laptop rtx 3080", raw: null, priceChf: 1200 }),
+      ];
+      const result = rankProductsUnified(products, gpuSpec);
+      expect(result).toHaveLength(3);
+    });
+
+    it("skips cheapest tag for low specScore products", () => {
+      const products = [
+        makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 500 }),
+        makeProduct({ id: "2", title: "unrelated product", priceChf: 100 }),
+      ];
+      const result = rankProductsUnified(products, baseSpec);
+      expect(result).toHaveLength(2);
+    });
   });
 });

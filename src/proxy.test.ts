@@ -1,40 +1,65 @@
-import { NextRequest } from "next/server";
-import { beforeEach, describe, expect, it } from "vitest";
-
-import { proxy } from "./proxy";
-
-function makeRequest(headers: Record<string, string>): NextRequest {
-  return new NextRequest("http://localhost/api/search", {
-    method: "POST",
-    headers: new Headers(headers) as unknown as Headers,
-  }) as unknown as NextRequest;
-}
+import { describe, expect, it, vi } from "vitest";
+import { NextRequest, NextResponse } from "next/server";
 
 describe("proxy", () => {
-  const originalEnv = process.env;
+  const createRequest = (headers: Record<string, string> = {}): NextRequest => {
+    const req = new NextRequest("https://example.com/api/search", { headers });
+    return req;
+  };
 
-  beforeEach(() => {
-    process.env = { ...originalEnv, RITU_API_KEY: "test-key-123", IP_RATE_LIMIT: "3" };
+  it("returns 500 when RITU_API_KEY is not set", async () => {
+    vi.stubEnv("RITU_API_KEY", undefined);
+    const { proxy } = await import("./proxy");
+    const req = createRequest({ "x-api-key": "test-key" });
+    const res = proxy(req);
+    expect(res.status).toBe(500);
+    expect(await res.text()).toBe("Server misconfigured: RITU_API_KEY missing");
   });
 
-  it("returns 401 without x-api-key header", () => {
-    const res = proxy(makeRequest({}));
+  it("returns 401 when x-api-key header is missing", async () => {
+    vi.stubEnv("RITU_API_KEY", "valid-key");
+    const { proxy } = await import("./proxy");
+    const req = createRequest({});
+    const res = proxy(req);
     expect(res.status).toBe(401);
+    expect(await res.text()).toBe("Unauthorized: invalid or missing x-api-key");
   });
 
-  it("returns 401 with wrong x-api-key", () => {
-    const res = proxy(makeRequest({ "x-api-key": "wrong" }));
+  it("returns 401 when x-api-key is invalid", async () => {
+    vi.stubEnv("RITU_API_KEY", "valid-key");
+    const { proxy } = await import("./proxy");
+    const req = createRequest({ "x-api-key": "wrong-key" });
+    const res = proxy(req);
     expect(res.status).toBe(401);
+    expect(await res.text()).toBe("Unauthorized: invalid or missing x-api-key");
   });
 
-  it("returns 200 with valid x-api-key (under rate limit)", () => {
-    const res = proxy(makeRequest({ "x-api-key": "test-key-123" }));
+  it("returns 200 and next() when valid key provided", async () => {
+    vi.stubEnv("RITU_API_KEY", "valid-key");
+    const { proxy } = await import("./proxy");
+    const req = createRequest({ "x-api-key": "valid-key" });
+    const res = proxy(req);
     expect(res.status).toBe(200);
   });
-});
 
-describe("proxy contracts", () => {
-  it("proxy behavior asserts structured response", () => {
-    expect(true).toBe(true);
+  it("uses x-forwarded-for for IP", async () => {
+    vi.stubEnv("RITU_API_KEY", "valid-key");
+    vi.stubEnv("IP_RATE_LIMIT", "10");
+    const { proxy } = await import("./proxy");
+    const req = createRequest({
+      "x-api-key": "valid-key",
+      "x-forwarded-for": "10.0.0.1, 10.0.0.2",
+    });
+    const res = proxy(req);
+    expect(res.status).toBe(200);
+  });
+
+  it("falls back to unknown IP when no x-forwarded-for", async () => {
+    vi.stubEnv("RITU_API_KEY", "valid-key");
+    vi.stubEnv("IP_RATE_LIMIT", "10");
+    const { proxy } = await import("./proxy");
+    const req = createRequest({ "x-api-key": "valid-key" });
+    const res = proxy(req);
+    expect(res.status).toBe(200);
   });
 });

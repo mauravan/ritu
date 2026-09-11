@@ -213,4 +213,14 @@ export async function withRetry<T>(fn: () => Promise<T>, service: "ricardo" | "t
       else delayMs = 1000 * 2 ** attempt;
     }
   }
+  throw new Error("withRetry exhausted retries unexpectedly");
 }
+
+// Test exports
+export {
+  parseEnvInt,
+  throttle,
+  isRateLimitedError,
+  extractRetryAfter,
+  parseRetryAfter,
+};

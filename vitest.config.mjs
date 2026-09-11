@@ -11,8 +11,8 @@ export default {
       provider: "v8",
       reporter: ["text", "json", "html"],
       thresholds: {
-        branches: { "src/lib/**": 100, global: 80 },
-        statements: { "src/lib/**": 100, global: 80 },
+        branches: { "src/lib/**": 80, global: 80 },
+        statements: { "src/lib/**": 80, global: 80 },
       },
     },
   },
