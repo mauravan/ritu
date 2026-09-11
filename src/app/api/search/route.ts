@@ -6,7 +6,7 @@ import { deriveSpecs } from "@/lib/llm/deriveSpecs";
 import { runOptionalRerank } from "@/lib/llm/rerank";
 import { parseSearchRequest } from "@/lib/parseSearchRequest";
 import { rankProductsUnified } from "@/lib/ranking";
-import { buildMarketplaceQueries, searchMarketplaces } from "@/lib/searchMarketplaces";
+import { augmentSearchQueries, buildMarketplaceQueries, searchMarketplaces } from "@/lib/searchMarketplaces";
 import type { DerivedSpec, SearchResult } from "@/lib/types";
 
 export async function POST(req: Request): Promise<Response> {
@@ -50,13 +50,14 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   spec.searchQueries = sanitizeSearchQueries(spec);
+  const searchQueries = augmentSearchQueries(spec.searchQueries, spec);
 
-  const queries = buildMarketplaceQueries(spec.searchQueries, platform);
+  const queries = buildMarketplaceQueries(searchQueries, platform);
   console.log(
     `[RITU][SEARCH] fanout ${queries.length} queries: ${queries.map((q) => `${q.marketplace}:${q.query}`).join(" | ")}`,
   );
 
-  const raw = await searchMarketplaces(spec.searchQueries, platform);
+  const raw = await searchMarketplaces(searchQueries, platform);
 
   const llmScores = await runOptionalRerank(raw, spec);
 

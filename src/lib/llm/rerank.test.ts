@@ -270,5 +270,29 @@ describe("rerank", () => {
       expect(warn).toHaveBeenCalledWith(expect.stringContaining("rerank failed"));
       warn.mockRestore();
     });
+
+    it("maps fulfillsRequired default true and false from LLM", async () => {
+      vi.mocked(generateObject).mockResolvedValue({
+        object: {
+          results: [
+            { id: "1", relevance: 95, relevant: true, reason: "ok" },
+            { id: "2", relevance: 5, relevant: false, reason: "fails", fulfillsRequired: false },
+          ],
+        },
+      } as never);
+      const result = await rerankWithLLM([mkProduct("1", "laptop"), mkProduct("2", "laptop")], spec);
+      expect(result.get("1")?.fulfillsRequired).toBe(true);
+      expect(result.get("2")?.fulfillsRequired).toBe(false);
+    });
+    it("marks wrong category with fulfillsRequired false", async () => {
+      vi.mocked(generateObject).mockResolvedValue({
+        object: {
+          results: [{ id: "3", relevance: 5, relevant: false, reason: "wrong category", fulfillsRequired: false }],
+        },
+      } as never);
+      const result = await rerankWithLLM([mkProduct("3", "DDR4 32GB RAM Module")], spec);
+      expect(result.get("3")?.fulfillsRequired).toBe(false);
+      expect(result.get("3")?.relevant).toBe(false);
+    });
   });
 });

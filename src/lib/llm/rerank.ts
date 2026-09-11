@@ -8,6 +8,7 @@ export type RerankResult = {
   relevance: number; // 0-100
   relevant: boolean;
   reason: string;
+  fulfillsRequired?: boolean;
 };
 
 export const RerankSchema = z.object({
@@ -17,17 +18,18 @@ export const RerankSchema = z.object({
       relevance: z.number().min(0).max(100),
       relevant: z.boolean(),
       reason: z.string().max(150),
+      fulfillsRequired: z.boolean().optional(),
     }),
   ),
 });
-
 const RERANK_SYSTEM_PROMPT = `You rank products by relevance to the user's intent and provide a RANKING REASON for each.
 
 Rules:
 - Accessories that contain the category word but are NOT the product itself are IRRELEVANT. Example: "laptop sleeve", "laptop hülle", "laptop cover", "laptop tasche" for intent "laptop" → relevant=false, relevance 5, reason "Ranking: accessory, excluded from ranking".
 - For relevant products, give a RANKING REASON explaining why it fits: mention matching requirements, specs, price efficiency, or condition (max 150 chars). Example: "Ranking: matches i5/16GB requirements well; strong value at CHF 500".
 - Score relevance 0-100: 90-100 highly relevant, 60-89 somewhat relevant, 30-59 weakly relevant, 0-29 irrelevant.
-- Be strict: if product is an accessory, part, cover, case, sleeve, bag, charger, dock, keyboard cover for the category, mark irrelevant.
+- REQUIRED specs are hard filters: if a product clearly fails a required spec (e.g. required "32gb" RAM but the title shows "16gb"), set relevant=false, fulfillsRequired=false, and give a reason naming the failed spec.
+- Set fulfillsRequired=false ONLY for clear violations of a required spec. If the title is silent about a spec, or the spec importance is preferred, keep fulfillsRequired=true.
 - Return relevance and relevant consistently (relevant false if relevance <30, true otherwise) but use explicit relevant field.
 - Keep reason short (max 150 chars).
 
@@ -35,8 +37,9 @@ Example for intent "laptop":
 - "Lenovo ThinkPad T14 i5 16GB 512GB SSD" → relevant true, relevance 95, reason "Ranking: excellent spec match (i5, 16GB, SSD); top-tier laptop"
 - "Laptop Sleeve 15 Zoll Hülle Tasche" → relevant false, relevance 5, reason "Ranking: accessory sleeve/hülle, excluded"
 - "Laptop Cover Case Schutz" → relevant false, relevance 8, reason "Ranking: accessory cover/case, excluded"
+- "Laptop i5 16GB" with required RAM "32gb" → relevant false, fulfillsRequired false, reason "Ranking: fails required 32gb RAM (only 16gb)"
+- "DDR4 32GB RAM Module" for laptop intent → relevant false, fulfillsRequired false, reason "Ranking: wrong category (RAM module, not laptop)"
 `;
-
 export function getRerankConfig() {
   const apiKey = process.env.LLM_API_KEY;
   if (!apiKey) return null;
@@ -111,6 +114,7 @@ ${items.map((it) => `- id=${JSON.stringify(it.id)} title=${JSON.stringify(it.tit
         relevance: Math.max(0, Math.min(100, r.relevance)),
         relevant: r.relevant,
         reason: r.reason,
+        fulfillsRequired: r.fulfillsRequired ?? true,
       });
     }
     console.log(
