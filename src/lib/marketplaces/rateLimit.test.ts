@@ -1,16 +1,17 @@
-import { describe, expect, it, vi } from "vitest";
 import pLimit from "p-limit";
+import { describe, expect, it, vi } from "vitest";
 import {
-  parseEnvInt,
-  throttle,
-  isRateLimitedError,
   extractRetryAfter,
+  isRateLimitedError,
+  parseEnvInt,
   parseRetryAfter,
+  throttle,
   throttled,
+  withRetry,
   withRicardoLimit,
   withTuttiLimit,
-  withRetry,
 } from "./rateLimit";
+
 describe("rateLimit", () => {
   describe("parseEnvInt", () => {
     it("returns default when env var not set", () => {
@@ -170,7 +171,7 @@ describe("rateLimit", () => {
       await expect(
         throttled(limiter, 10, async () => {
           throw new Error("test error");
-        })
+        }),
       ).rejects.toThrow("test error");
     });
   });
@@ -190,7 +191,7 @@ describe("rateLimit", () => {
       await expect(
         withRicardoLimit(async () => {
           throw new Error("ricardo error");
-        })
+        }),
       ).rejects.toThrow("ricardo error");
     });
   });
@@ -210,7 +211,7 @@ describe("rateLimit", () => {
       await expect(
         withTuttiLimit(async () => {
           throw new Error("tutti error");
-        })
+        }),
       ).rejects.toThrow("tutti error");
     });
   });
@@ -259,7 +260,7 @@ describe("rateLimit", () => {
         withRetry(async () => {
           attempts++;
           throw new Error("network error");
-        }, "ricardo")
+        }, "ricardo"),
       ).rejects.toThrow("network error");
       expect(attempts).toBe(1);
     });

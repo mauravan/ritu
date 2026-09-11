@@ -87,7 +87,9 @@ describe("SearchForm edge cases", () => {
       throw new Error("API error");
     });
     render(<SearchForm onSearch={onSearch} isLoading={false} error={null} />);
-    const textareas = screen.getAllByPlaceholderText(/describe your need|beschreibe dein bed.+rfnis/i);
+    const textareas = screen.getAllByPlaceholderText(
+      /describe your need|beschreibe dein bed.+rfnis/i,
+    );
     fireEvent.change(textareas[0], { target: { value: "test query" } });
     const buttons = screen.getAllByRole("button", { name: /search$/i });
     // Check if button is enabled
@@ -109,7 +111,9 @@ describe("SearchForm edge cases", () => {
   it("disables platform buttons when awaitingClarification", async () => {
     const onSearch = vi.fn(async () => ({ clarifyingQuestion: "What size?" }));
     render(<SearchForm onSearch={onSearch} isLoading={false} error={null} />);
-    const textareas = screen.getAllByPlaceholderText(/describe your need|beschreibe dein bed.+rfnis/i);
+    const textareas = screen.getAllByPlaceholderText(
+      /describe your need|beschreibe dein bed.+rfnis/i,
+    );
     fireEvent.change(textareas[0], { target: { value: "laptop" } });
     const buttons = screen.getAllByRole("button", { name: /search with question/i });
     if (!buttons[0].disabled) {

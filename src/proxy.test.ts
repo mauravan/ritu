@@ -1,5 +1,5 @@
+import { NextRequest } from "next/server";
 import { describe, expect, it, vi } from "vitest";
-import { NextRequest, NextResponse } from "next/server";
 
 describe("proxy", () => {
   const createRequest = (headers: Record<string, string> = {}): NextRequest => {

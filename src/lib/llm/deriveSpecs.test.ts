@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { generateObject, generateText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
+import { generateObject, generateText } from "ai";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ValidationError } from "../errors";
 import { deriveSpecs, tryParseJsonFromText } from "./deriveSpecs";
 
@@ -135,9 +135,7 @@ describe("deriveSpecs", () => {
     it("throws fallback error when generateText returns unparseable text", async () => {
       vi.mocked(generateObject).mockRejectedValue(new Error("no structured"));
       vi.mocked(generateText).mockResolvedValue({ text: "not json at all" } as never);
-      await expect(deriveSpecs("laptop for school")).rejects.toThrow(
-        "All LLM attempts failed",
-      );
+      await expect(deriveSpecs("laptop for school")).rejects.toThrow("All LLM attempts failed");
     });
 
     it("rethrows ValidationError from generateText", async () => {
@@ -150,17 +148,13 @@ describe("deriveSpecs", () => {
     it("throws fallback error when generateText rejects with generic error", async () => {
       vi.mocked(generateObject).mockRejectedValue(new Error("no structured"));
       vi.mocked(generateText).mockRejectedValue(new Error("network down"));
-      await expect(deriveSpecs("laptop for school")).rejects.toThrow(
-        "All LLM attempts failed",
-      );
+      await expect(deriveSpecs("laptop for school")).rejects.toThrow("All LLM attempts failed");
     });
 
     it("handles non-Error rejections from both attempts", async () => {
       vi.mocked(generateObject).mockRejectedValue("plain string error");
       vi.mocked(generateText).mockRejectedValue("another plain string");
-      await expect(deriveSpecs("laptop for school")).rejects.toThrow(
-        "All LLM attempts failed",
-      );
+      await expect(deriveSpecs("laptop for school")).rejects.toThrow("All LLM attempts failed");
     });
 
     it("includes clarifyingAnswer in prompt", async () => {

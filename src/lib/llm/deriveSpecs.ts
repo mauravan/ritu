@@ -100,7 +100,7 @@ export async function deriveSpecs(input: string, clarifyingAnswer?: string): Pro
       `[RITU][LLM] generateText fallback failed: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
-throw new Error("All LLM attempts failed — cannot derive specs");
+  throw new Error("All LLM attempts failed — cannot derive specs");
 }
 
 // Test exports

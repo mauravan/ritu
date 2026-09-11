@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeTitle, aggregate } from "./aggregate";
+import { aggregate, normalizeTitle } from "./aggregate";
 import type { RawProduct } from "./types";
 
 const makeProduct = (overrides: Partial<RawProduct> = {}): RawProduct => ({

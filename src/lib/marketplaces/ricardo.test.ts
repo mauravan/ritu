@@ -70,7 +70,9 @@ describe("ricardo", () => {
     });
 
     it("handles special characters in query", () => {
-      expect(buildRicardoUrl("iPhone 15 Pro")).toBe("https://www.ricardo.ch/de/s/iPhone%2015%20Pro/");
+      expect(buildRicardoUrl("iPhone 15 Pro")).toBe(
+        "https://www.ricardo.ch/de/s/iPhone%2015%20Pro/",
+      );
     });
 
     it("handles empty query", () => {

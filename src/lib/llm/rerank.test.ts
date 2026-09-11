@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { generateObject } from "ai";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DerivedSpec, RawProduct } from "../types";
 import { getRerankConfig, rerankWithLLM } from "./rerank";
 
@@ -212,9 +212,7 @@ describe("rerank", () => {
       const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
       vi.stubEnv("LLM_RERANK_TIMEOUT_MS", "1000");
       vi.useFakeTimers();
-      vi.mocked(generateObject).mockImplementation(
-        () => new Promise(() => {}) as never,
-      );
+      vi.mocked(generateObject).mockImplementation(() => new Promise(() => {}) as never);
       const promise = rerankWithLLM([mkProduct("1", "laptop")], spec);
       await vi.advanceTimersByTimeAsync(1500);
       const result = await promise;

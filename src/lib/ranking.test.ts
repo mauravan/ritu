@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  tokenize,
-  keywordsFromSpec,
-  isGpuRequirement,
   extractGpuNumber,
-  tagExplanation,
+  isGpuRequirement,
+  keywordsFromSpec,
   rankProductsUnified,
+  tagExplanation,
+  tokenize,
 } from "./ranking";
 import type { DerivedSpec, RawProduct } from "./types";
 
@@ -95,31 +95,14 @@ describe("ranking", () => {
   });
 
   describe("tagExplanation", () => {
-    const tags: string[] = [
-      "best specs",
-      "best value",
-      "cheapest",
-      "best condition",
-      "balanced",
-      "best overall",
-    ];
-
     it("returns correct explanation for each known tag", () => {
       expect(tagExplanation("best specs")).toBe("Highest specScore");
-      expect(tagExplanation("best value")).toBe(
-        "Best valueScore (spec adjusted for price)"
-      );
-      expect(tagExplanation("cheapest")).toBe(
-        "Lowest price among specScore≥40"
-      );
-      expect(tagExplanation("best condition")).toBe(
-        "Best condition 'new/neu' among specScore≥50"
-      );
-      expect(tagExplanation("balanced")).toBe(
-        "Best harmonic mean of spec & value among untagged"
-      );
+      expect(tagExplanation("best value")).toBe("Best valueScore (spec adjusted for price)");
+      expect(tagExplanation("cheapest")).toBe("Lowest price among specScore≥40");
+      expect(tagExplanation("best condition")).toBe("Best condition 'new/neu' among specScore≥50");
+      expect(tagExplanation("balanced")).toBe("Best harmonic mean of spec & value among untagged");
       expect(tagExplanation("best overall")).toBe(
-        "Highest unified hybrid score (LLM + spec + value)"
+        "Highest unified hybrid score (LLM + spec + value)",
       );
     });
 
@@ -176,9 +159,7 @@ describe("ranking", () => {
         makeProduct({ id: "2", title: "i5 8gb laptop", priceChf: 500 }),
       ];
       const result = rankProductsUnified(products, baseSpec);
-      expect(result[0].hybridScore).toBeGreaterThanOrEqual(
-        result[1].hybridScore
-      );
+      expect(result[0].hybridScore).toBeGreaterThanOrEqual(result[1].hybridScore);
     });
 
     it("includes hybridScore and relevance", () => {
@@ -304,7 +285,9 @@ describe("ranking", () => {
       ];
       const result = rankProductsUnified(products, gpuSpec);
       expect(result).toHaveLength(3);
-      expect(result.some((p) => p.rankingMeta?.breakdown.some((b) => b.includes("gpu")))).toBe(true);
+      expect(result.some((p) => p.rankingMeta?.breakdown.some((b) => b.includes("gpu")))).toBe(
+        true,
+      );
     });
 
     it("applies GPU score signal when no compare present", () => {

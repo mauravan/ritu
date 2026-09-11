@@ -18,28 +18,28 @@ describe("contracts", () => {
   it("throws for missing required field", () => {
     const obj = { name: "John", age: 30 };
     expect(() => expectSchema(obj, testSchema)).toThrow(
-      "Contract assertion failed: expected schema match"
+      "Contract assertion failed: expected schema match",
     );
   });
 
   it("throws for invalid email format", () => {
     const obj = { name: "John", age: 30, email: "invalid-email" };
     expect(() => expectSchema(obj, testSchema)).toThrow(
-      "Contract assertion failed: expected schema match"
+      "Contract assertion failed: expected schema match",
     );
   });
 
   it("throws for invalid age type", () => {
     const obj = { name: "John", age: "thirty", email: "john@example.com" };
     expect(() => expectSchema(obj, testSchema)).toThrow(
-      "Contract assertion failed: expected schema match"
+      "Contract assertion failed: expected schema match",
     );
   });
 
   it("throws for negative age", () => {
     const obj = { name: "John", age: -5, email: "john@example.com" };
     expect(() => expectSchema(obj, testSchema)).toThrow(
-      "Contract assertion failed: expected schema match"
+      "Contract assertion failed: expected schema match",
     );
   });
 
@@ -63,8 +63,6 @@ describe("contracts", () => {
 
   it("throws for invalid array items", () => {
     const arraySchema = z.array(z.number());
-    expect(() => expectSchema([1, "two", 3], arraySchema)).toThrow(
-      "Contract assertion failed"
-    );
+    expect(() => expectSchema([1, "two", 3], arraySchema)).toThrow("Contract assertion failed");
   });
 });

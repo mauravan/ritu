@@ -217,10 +217,4 @@ export async function withRetry<T>(fn: () => Promise<T>, service: "ricardo" | "t
 }
 
 // Test exports
-export {
-  parseEnvInt,
-  throttle,
-  isRateLimitedError,
-  extractRetryAfter,
-  parseRetryAfter,
-};
+export { extractRetryAfter, isRateLimitedError, parseEnvInt, parseRetryAfter, throttle };

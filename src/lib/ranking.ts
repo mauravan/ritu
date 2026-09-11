@@ -249,8 +249,6 @@ export function rankProductsUnified(
     llmW = 0;
   }
 
-
-
   // 6. Hybrid score and sort
   const enriched = scaledResults.map((w, idx) => {
     const llmScore = llmEntries[idx] as number;
@@ -413,10 +411,4 @@ export function rankProductsUnified(
 }
 
 // Test exports
-export {
-  tokenize,
-  keywordsFromSpec,
-  isGpuRequirement,
-  extractGpuNumber,
-};
-
+export { extractGpuNumber, isGpuRequirement, keywordsFromSpec, tokenize };

@@ -97,7 +97,4 @@ export async function searchTuttiViaApi(query: string, limit: number): Promise<R
 }
 
 // Test exports
-export {
-  parsePrice,
-  normalizeImageUrl,
-};
+export { normalizeImageUrl, parsePrice };

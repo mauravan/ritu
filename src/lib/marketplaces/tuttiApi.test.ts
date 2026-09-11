@@ -1,5 +1,6 @@
+import type { Listing } from "tutti-api";
 import { describe, expect, it } from "vitest";
-import { parsePrice, normalizeImageUrl, listingToRawProduct } from "./tuttiApi";
+import { listingToRawProduct, normalizeImageUrl, parsePrice } from "./tuttiApi";
 
 describe("tuttiApi", () => {
   describe("parsePrice", () => {
@@ -56,8 +57,12 @@ describe("tuttiApi", () => {
     });
 
     it("passes through full HTTP URLs", () => {
-      expect(normalizeImageUrl("https://example.com/image.jpg")).toBe("https://example.com/image.jpg");
-      expect(normalizeImageUrl("http://example.com/image.jpg")).toBe("http://example.com/image.jpg");
+      expect(normalizeImageUrl("https://example.com/image.jpg")).toBe(
+        "https://example.com/image.jpg",
+      );
+      expect(normalizeImageUrl("http://example.com/image.jpg")).toBe(
+        "http://example.com/image.jpg",
+      );
     });
 
     it("returns null for invalid URLs", () => {
@@ -78,7 +83,7 @@ describe("tuttiApi", () => {
 
     it("maps listing to RawProduct", () => {
       const listing = makeListing();
-      const result = listingToRawProduct(listing as any);
+      const result = listingToRawProduct(listing as Listing);
       expect(result.id).toBe("12345");
       expect(result.marketplace).toBe("tutti");
       expect(result.title).toBe("Test Product");
@@ -93,13 +98,13 @@ describe("tuttiApi", () => {
 
     it("truncates long titles", () => {
       const listing = makeListing({ title: "a".repeat(250) });
-      const result = listingToRawProduct(listing as any);
+      const result = listingToRawProduct(listing as Listing);
       expect(result.title.length).toBe(200);
     });
 
     it("uses fallback price field", () => {
       const listing = makeListing({ formattedPrice: undefined, price: "CHF 200" });
-      const result = listingToRawProduct(listing as any);
+      const result = listingToRawProduct(listing as Listing);
       expect(result.priceChf).toBe(200);
     });
 
@@ -108,7 +113,7 @@ describe("tuttiApi", () => {
         images: undefined,
         thumbnail: { rendition: { src: "/thumb.jpg" } },
       });
-      const result = listingToRawProduct(listing as any);
+      const result = listingToRawProduct(listing as Listing);
       expect(result.imageUrl).toBe("https://www.tutti.ch/thumb.jpg");
     });
 
@@ -117,7 +122,7 @@ describe("tuttiApi", () => {
         postcodeInformation: undefined,
         address: "Bern",
       });
-      const result = listingToRawProduct(listing as any);
+      const result = listingToRawProduct(listing as Listing);
       expect(result.location).toBe("Bern");
     });
 
@@ -131,7 +136,7 @@ describe("tuttiApi", () => {
         postcodeInformation: undefined,
         address: undefined,
       });
-      const result = listingToRawProduct(listing as any);
+      const result = listingToRawProduct(listing as Listing);
       expect(result.id).toBe("");
       expect(result.title).toBe("");
       expect(result.priceChf).toBeNull();

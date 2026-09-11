@@ -184,7 +184,7 @@ describe("ProductList", () => {
 
   it("renders showing top N message when > 40 products", () => {
     const products = Array.from({ length: 45 }, (_, i) =>
-      mkRanked({ id: String(i), title: `Product ${i}` })
+      mkRanked({ id: String(i), title: `Product ${i}` }),
     );
     const html = renderToString(<ProductList products={products} />);
     expect(html).toContain("Showing top");
@@ -194,7 +194,7 @@ describe("ProductList", () => {
 
   it("renders ranked products count", () => {
     const products = Array.from({ length: 5 }, (_, i) =>
-      mkRanked({ id: String(i), title: `Product ${i}` })
+      mkRanked({ id: String(i), title: `Product ${i}` }),
     );
     const html = renderToString(<ProductList products={products} />);
     expect(html).toContain("Ranked Products");
