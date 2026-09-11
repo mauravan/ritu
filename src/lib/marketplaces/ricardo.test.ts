@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildRicardoUrl, searchRicardo } from "./ricardo";
 
 vi.mock("ricardo-api", () => {
-  return {
-    RicardoClient: vi.fn(() => ({
-      search: vi.fn(() => ({
-        fetch: vi.fn(async () => ({
+  class FakeRicardoClient {
+    search() {
+      return {
+        fetch: async () => ({
           listings: [
             {
               listingID: "1200985678",
@@ -23,10 +23,11 @@ vi.mock("ricardo-api", () => {
               image_url: "https://img.ricardostatic.ch/images/abc/t_265x200/myimage.jpg",
             },
           ],
-        })),
-      })),
-    })),
-  };
+        }),
+      };
+    }
+  }
+  return { RicardoClient: FakeRicardoClient };
 });
 
 describe("ricardo", () => {
