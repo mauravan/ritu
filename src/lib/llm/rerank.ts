@@ -142,3 +142,54 @@ ${items.map((it) => `- id=${JSON.stringify(it.id)} title=${JSON.stringify(it.tit
     return new Map();
   }
 }
+
+export async function runOptionalRerank(
+  raw: RawProduct[],
+  spec: DerivedSpec,
+): Promise<Map<string, RerankResult> | undefined> {
+  if (!process.env.LLM_API_KEY) {
+    console.log("[RITU][RANK] LLM rerank skipped — no LLM_API_KEY");
+    return undefined;
+  }
+  const cfg = getRerankConfig();
+  const maxBatch = cfg?.maxBatch ?? 40;
+  const tRerank0 = Date.now();
+  try {
+    const toRerank: RawProduct[] = raw.slice(0, maxBatch).map((r) => ({
+      id: r.id,
+      title: r.title,
+      marketplace: r.marketplace,
+      priceChf: r.priceChf,
+      currency: "CHF" as const,
+      condition: r.condition,
+      imageUrl: r.imageUrl,
+      url: r.url,
+      location: r.location,
+      raw: r.raw,
+    }));
+    console.log(
+      `[RITU][RANK] LLM rerank start deterministic=${raw.length} batch=${toRerank.length}/${raw.length} maxBatch=${maxBatch} model=${cfg?.model ?? "unknown"} baseURL=${cfg?.baseURL ?? "unknown"} timeoutMs=${cfg?.timeoutMs ?? 15000} category="${spec.category}"`,
+    );
+    const llmScores = await rerankWithLLM(toRerank, spec);
+    const elapsed = Date.now() - tRerank0;
+    if (!llmScores || llmScores.size === 0) {
+      console.warn(
+        `[RITU][RANK] LLM rerank yielded 0/${toRerank.length} (empty map) — falling back to deterministic. deterministic=${raw.length} maxBatch=${maxBatch} model=${cfg?.model} baseURL=${cfg?.baseURL} timeoutMs=${cfg?.timeoutMs} category="${spec.category}" elapsed=${elapsed}ms specSummary="${spec.summary.slice(0, 80)}"`,
+      );
+    } else {
+      console.log(
+        `[RITU][RANK] LLM rerank done ${llmScores.size}/${toRerank.length} elapsed=${elapsed}ms category="${spec.category}"`,
+      );
+    }
+    return llmScores;
+  } catch (e) {
+    const elapsed = Date.now() - tRerank0;
+    const msg = e instanceof Error ? e.message : String(e);
+    const stack = e instanceof Error ? (e.stack?.split("\n").slice(0, 4).join(" | ") ?? "") : "";
+    const errName = e instanceof Error ? e.name : typeof e;
+    console.warn(
+      `[RITU][RANK] LLM rerank failed — outer catch, using deterministic. deterministic=${raw.length} maxBatch=${maxBatch} model=${cfg?.model} baseURL=${cfg?.baseURL} timeoutMs=${cfg?.timeoutMs} category="${spec.category}" specSummary="${spec.summary.slice(0, 80)}" elapsed=${elapsed}ms error=${errName}: ${msg} stack=${stack}`,
+    );
+    return undefined;
+  }
+}

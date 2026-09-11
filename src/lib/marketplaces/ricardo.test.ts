@@ -2,30 +2,32 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildRicardoUrl, searchRicardo, slugify } from "./ricardo";
 
 vi.mock("ricardo-api", () => {
-  const mockFetch = vi.fn(async () => ({
-    listings: [
-      {
-        listingID: "1200985678",
-        id: "1200985678",
-        title: "Intel NUC 16GB RAM Mini PC",
-        buyNowPrice: 69,
-        bidPrice: 50,
-        images: [
-          {
-            rendition: {
-              src: "https://img.ricardostatic.ch/images/abc/t_265x200/myimage.jpg",
+  class FakeRicardoClient {
+    search() {
+      return {
+        fetch: async () => ({
+          listings: [
+            {
+              listingID: "1200985678",
+              id: "1200985678",
+              title: "Intel NUC 16GB RAM Mini PC",
+              buyNowPrice: 69,
+              bidPrice: 50,
+              images: [
+                {
+                  rendition: {
+                    src: "https://img.ricardostatic.ch/images/abc/t_265x200/myimage.jpg",
+                  },
+                },
+              ],
+              image_url: "https://img.ricardostatic.ch/images/abc/t_265x200/myimage.jpg",
             },
-          },
-        ],
-        image_url: "https://img.ricardostatic.ch/images/abc/t_265x200/myimage.jpg",
-      },
-    ],
-  }));
-  const mockSearch = vi.fn(() => ({ fetch: mockFetch }));
-  class MockRicardoClient {
-    search = mockSearch;
+          ],
+        }),
+      };
+    }
   }
-  return { RicardoClient: MockRicardoClient };
+  return { RicardoClient: FakeRicardoClient };
 });
 
 describe("ricardo", () => {
