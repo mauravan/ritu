@@ -13,18 +13,7 @@ export function aggregate(groups: RawProduct[][]): RawProduct[] {
 
   for (const p of flat) {
     const key = `${normalizeTitle(p.title)}|${p.priceChf ?? "null"}`;
-    const existing = byKey.get(key);
-    if (!existing) {
-      byKey.set(key, p);
-    } else {
-      // keep cheapest when price both present
-      if (p.priceChf !== null && existing.priceChf !== null) {
-        if (p.priceChf < existing.priceChf) byKey.set(key, p);
-      } else if (p.priceChf !== null && existing.priceChf === null) {
-        byKey.set(key, p);
-      }
-      // otherwise keep existing
-    }
+    if (!byKey.has(key)) byKey.set(key, p);
   }
 
   // Also dedup by id/url exact
@@ -36,3 +25,6 @@ export function aggregate(groups: RawProduct[][]): RawProduct[] {
 
   return Array.from(byId.values());
 }
+
+// Test exports
+export { normalizeTitle };

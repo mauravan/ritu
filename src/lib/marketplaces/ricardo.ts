@@ -60,3 +60,6 @@ export async function searchRicardo(query: string, limit = 20): Promise<RawProdu
     return true;
   });
 }
+
+// Test exports
+export { slugify };

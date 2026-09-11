@@ -12,6 +12,11 @@ describe("errors contracts", () => {
     expect(err.raw).toEqual({ b: 1 });
   });
 
+  it("ValidationError without opts has no fields or raw", () => {
+    const err = new ValidationError("plain");
+    expect(err.fields).toBeUndefined();
+    expect(err.raw).toBeUndefined();
+  });
   it("SpecDerivationError has cause and code", () => {
     const cause = new Error("cause");
     const err = new SpecDerivationError("fail", cause);

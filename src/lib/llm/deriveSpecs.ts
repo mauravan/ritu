@@ -102,3 +102,6 @@ export async function deriveSpecs(input: string, clarifyingAnswer?: string): Pro
   }
   throw new Error("All LLM attempts failed — cannot derive specs");
 }
+
+// Test exports
+export { tryParseJsonFromText };

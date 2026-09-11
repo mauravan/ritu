@@ -105,6 +105,101 @@ describe("ProductList", () => {
     const html = renderToString(<ProductList products={[p]} />);
     expect(html).toContain("Penalty applied for excluded term");
   });
+
+  it("renders empty state message", () => {
+    const html = renderToString(<ProductList products={[]} />);
+    expect(html).toContain("No products found");
+  });
+  it("renders image error fallback", () => {
+    const p = mkRanked({
+      id: "1",
+      title: "Test Product",
+      imageUrl: "https://example.com/image.jpg",
+    });
+    const html = renderToString(<ProductList products={[p]} />);
+    expect(html).toContain("No image");
+    // onError handler not rendered in SSR
+  });
+
+  it("renders matched requirements and reasons", () => {
+    const p = mkRanked({
+      id: "1",
+      title: "Test Product",
+      matchedRequirements: ["cpu: i7", "ram: 16gb"],
+      reasons: ["Matches: cpu: i7, ram: 16gb", "Price CHF 100"],
+    });
+    const html = renderToString(<ProductList products={[p]} />);
+    expect(html).toContain("cpu: i7");
+    expect(html).toContain("ram: 16gb");
+    expect(html).toContain("Matches:");
+    expect(html).toContain("Price CHF 100");
+  });
+
+  it("renders tags with colors", () => {
+    const p = mkRanked({
+      id: "1",
+      title: "Test Product",
+      tags: ["best value", "cheapest", "best specs"],
+    });
+    const html = renderToString(<ProductList products={[p]} />);
+    expect(html).toContain("best value");
+    expect(html).toContain("cheapest");
+    expect(html).toContain("best specs");
+  });
+
+  it("renders condition and location", () => {
+    const p = mkRanked({
+      id: "1",
+      title: "Test Product",
+      condition: "new",
+      location: "Zurich",
+    });
+    const html = renderToString(<ProductList products={[p]} />);
+    expect(html).toContain("new");
+    expect(html).toContain("Zurich");
+  });
+
+  it("renders ricardo bid/listed prices", () => {
+    const p = mkRanked({
+      id: "1",
+      title: "Test Product",
+      marketplace: "ricardo",
+      bidPriceChf: 50,
+      listedPriceChf: 100,
+    });
+    const html = renderToString(<ProductList products={[p]} />);
+    expect(html).toContain("CHF 50 bid");
+    expect(html).toContain("CHF 100 listed");
+  });
+
+  it("renders price unavailable when null", () => {
+    const p = mkRanked({
+      id: "1",
+      title: "Test Product",
+      priceChf: null,
+    });
+    const html = renderToString(<ProductList products={[p]} />);
+    expect(html).toContain("Price unavailable");
+  });
+
+  it("renders showing top N message when > 40 products", () => {
+    const products = Array.from({ length: 45 }, (_, i) =>
+      mkRanked({ id: String(i), title: `Product ${i}` }),
+    );
+    const html = renderToString(<ProductList products={products} />);
+    expect(html).toContain("Showing top");
+    expect(html).toContain("40");
+    expect(html).toContain("45");
+  });
+
+  it("renders ranked products count", () => {
+    const products = Array.from({ length: 5 }, (_, i) =>
+      mkRanked({ id: String(i), title: `Product ${i}` }),
+    );
+    const html = renderToString(<ProductList products={products} />);
+    expect(html).toContain("Ranked Products");
+    expect(html).toContain("5");
+  });
 });
 
 describe("ProductList contracts", () => {

@@ -95,3 +95,6 @@ export async function searchTuttiViaApi(query: string, limit: number): Promise<R
     return [];
   }
 }
+
+// Test exports
+export { normalizeImageUrl, parsePrice };

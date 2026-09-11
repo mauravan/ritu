@@ -1,98 +1,193 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
-const mockGenerateObject = vi.fn();
-const mockGenerateText = vi.fn();
+import { createOpenAI } from "@ai-sdk/openai";
+import { generateObject, generateText } from "ai";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ValidationError } from "../errors";
+import { deriveSpecs, tryParseJsonFromText } from "./deriveSpecs";
 
 vi.mock("ai", () => ({
-  generateObject: (...args: unknown[]) => mockGenerateObject(...args),
-  generateText: (...args: unknown[]) => mockGenerateText(...args),
+  generateObject: vi.fn(),
+  generateText: vi.fn(),
 }));
 
 vi.mock("@ai-sdk/openai", () => ({
-  createOpenAI: () => () => "mock-model",
+  createOpenAI: vi.fn(() => (model: string) => `mock-openai:${model}`),
 }));
 
-import { ValidationError } from "../errors";
-import { deriveSpecs } from "./deriveSpecs";
-
-const cannedSpec = {
-  category: "mini pc",
-  summary: "Small server for Immich",
-  requirements: [{ key: "RAM", value: "16GB", importance: "required" as const }],
-  searchQueries: ["mini pc", "intel nuc", "nas"],
-  excludedTerms: ["raspberry pi zero"],
+const validSpec = {
+  category: "laptop",
+  summary: "User needs a laptop for school",
+  requirements: [{ key: "cpu", value: "i7", importance: "required" }],
+  searchQueries: ["laptop i7", "notebook"],
+  excludedTerms: ["sleeve", "case"],
 };
 
 describe("deriveSpecs", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    process.env.LLM_API_KEY = "test-key";
-    process.env.LLM_BASE_URL = "https://openrouter.ai/api/v1";
-    process.env.LLM_MODEL = "openai/gpt-4o-mini";
-    mockGenerateText.mockResolvedValue({ text: JSON.stringify(cannedSpec) });
+  describe("tryParseJsonFromText", () => {
+    it("parses direct JSON", () => {
+      expect(tryParseJsonFromText('{"key": "value"}')).toEqual({ key: "value" });
+    });
+
+    it("parses JSON with whitespace", () => {
+      expect(tryParseJsonFromText('  {"key": "value"}  ')).toEqual({ key: "value" });
+    });
+
+    it("parses JSON from markdown code block", () => {
+      expect(tryParseJsonFromText('```json\n{"key": "value"}\n```')).toEqual({
+        key: "value",
+      });
+    });
+
+    it("parses JSON from markdown code block without language", () => {
+      expect(tryParseJsonFromText('```\n{"key": "value"}\n```')).toEqual({ key: "value" });
+    });
+
+    it("extracts JSON from text with first/last brace", () => {
+      expect(tryParseJsonFromText('some text {"key": "value"} more text')).toEqual({
+        key: "value",
+      });
+    });
+
+    it("handles nested braces", () => {
+      expect(tryParseJsonFromText('text {"outer": {"inner": "value"}} end')).toEqual({
+        outer: { inner: "value" },
+      });
+    });
+
+    it("returns null for invalid JSON", () => {
+      expect(tryParseJsonFromText("not json at all")).toBeNull();
+    });
+
+    it("returns null for empty string", () => {
+      expect(tryParseJsonFromText("")).toBeNull();
+    });
+
+    it("returns null for unparseable code block", () => {
+      expect(tryParseJsonFromText("```json\nnot json\n```")).toBeNull();
+    });
+
+    it("handles array JSON", () => {
+      expect(tryParseJsonFromText("[1, 2, 3]")).toEqual([1, 2, 3]);
+    });
+
+    it("handles number JSON", () => {
+      expect(tryParseJsonFromText("42")).toBe(42);
+    });
   });
 
-  it("returns parsed spec on success", async () => {
-    mockGenerateObject.mockResolvedValue({ object: cannedSpec });
-    const result = await deriveSpecs("i need a small server for home");
-    expect(result.category).toBe("mini pc");
-    expect(result.searchQueries).toContain("mini pc");
-  });
+  describe("deriveSpecs", () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      vi.stubEnv("LLM_API_KEY", "test-key");
+    });
 
-  it("throws ValidationError if too short", async () => {
-    await expect(deriveSpecs("ab")).rejects.toBeInstanceOf(ValidationError);
-  });
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
 
-  it("throws when LLM_API_KEY is missing", async () => {
-    delete process.env.LLM_API_KEY;
-    await expect(deriveSpecs("i need a new laptop for school")).rejects.toThrow(
-      "LLM_API_KEY missing",
-    );
-  });
+    it("throws ValidationError for input shorter than 3 chars", async () => {
+      await expect(deriveSpecs("ab")).rejects.toThrow(ValidationError);
+      await expect(deriveSpecs("ab")).rejects.toThrow("Input too short");
+    });
 
-  it("throws when both LLM attempts fail", async () => {
-    mockGenerateObject.mockRejectedValue(new Error("Invalid JSON response"));
-    mockGenerateText.mockRejectedValue(new Error("network fail"));
-    await expect(deriveSpecs("i need a new laptop for school")).rejects.toThrow(
-      "All LLM attempts failed",
-    );
-  });
+    it("throws Error when LLM_API_KEY missing", async () => {
+      vi.stubEnv("LLM_API_KEY", undefined);
+      await expect(deriveSpecs("laptop for school")).rejects.toThrow("LLM_API_KEY missing");
+    });
 
-  it("uses generateText fallback when generateObject fails but generateText succeeds", async () => {
-    mockGenerateObject.mockRejectedValue(new Error("Invalid JSON response"));
-    mockGenerateText.mockResolvedValue({ text: JSON.stringify(cannedSpec) });
-    const result = await deriveSpecs("i need a small server");
-    expect(result.category).toBe("mini pc");
-  });
+    it("returns object from generateObject on first attempt", async () => {
+      vi.mocked(generateObject).mockResolvedValue({ object: validSpec } as never);
+      const result = await deriveSpecs("laptop for school");
+      expect(result).toEqual(validSpec);
+      expect(generateObject).toHaveBeenCalledTimes(1);
+      expect(generateText).not.toHaveBeenCalled();
+      expect(createOpenAI).toHaveBeenCalledWith({
+        apiKey: "test-key",
+        baseURL: "https://openrouter.ai/api/v1",
+      });
+    });
 
-  it("truncates input to 500 chars", async () => {
-    mockGenerateObject.mockResolvedValue({ object: cannedSpec });
-    const long = "a".repeat(600);
-    await deriveSpecs(long);
-    const call = mockGenerateObject.mock.calls[0]?.[0] as { prompt: string };
-    expect(call.prompt.length).toBe(500);
-  });
-});
+    it("falls back to generateText when generateObject throws generic error", async () => {
+      vi.mocked(generateObject).mockRejectedValue(new Error("model does not support structured"));
+      vi.mocked(generateText).mockResolvedValue({ text: JSON.stringify(validSpec) } as never);
+      const result = await deriveSpecs("laptop for school");
+      expect(result).toEqual(validSpec);
+      expect(generateText).toHaveBeenCalledTimes(1);
+    });
 
-describe("deriveSpecs contract assertions", () => {
-  it("ValidationError from generateObject propagates with fields and raw", async () => {
-    mockGenerateObject.mockRejectedValue(
-      new ValidationError("bad", { fields: { f: ["v"] }, raw: { x: 1 } }),
-    );
-    await expect(deriveSpecs("test")).rejects.toBeInstanceOf(ValidationError);
-  });
+    it("rethrows ValidationError from generateObject", async () => {
+      const validationError = new ValidationError("bad schema");
+      vi.mocked(generateObject).mockRejectedValue(validationError);
+      await expect(deriveSpecs("laptop for school")).rejects.toBe(validationError);
+      expect(generateText).not.toHaveBeenCalled();
+    });
 
-  it("input truncation is exactly 500 chars", async () => {
-    mockGenerateObject.mockResolvedValue({ object: cannedSpec });
-    const long = "x".repeat(600);
-    await deriveSpecs(long);
-    const prompt = (mockGenerateObject.mock.calls[0]?.[0] as { prompt: string })?.prompt ?? "";
-    expect(prompt.length).toBeLessThanOrEqual(500);
-  });
+    it("throws ValidationError when generateText returns invalid schema", async () => {
+      vi.mocked(generateObject).mockRejectedValue(new Error("no structured"));
+      vi.mocked(generateText).mockResolvedValue({
+        text: JSON.stringify({ category: "laptop", missing: true }),
+      } as never);
+      await expect(deriveSpecs("laptop for school")).rejects.toThrow(ValidationError);
+      await expect(deriveSpecs("laptop for school")).rejects.toThrow(
+        "LLM response validation failed",
+      );
+    });
 
-  it("catch/rethrow path covers both attempts", async () => {
-    mockGenerateObject.mockRejectedValue(new Error("fail1"));
-    mockGenerateText.mockRejectedValue(new ValidationError("fail2", { raw: {} }));
-    await expect(deriveSpecs("test")).rejects.toBeInstanceOf(ValidationError);
+    it("throws fallback error when generateText returns unparseable text", async () => {
+      vi.mocked(generateObject).mockRejectedValue(new Error("no structured"));
+      vi.mocked(generateText).mockResolvedValue({ text: "not json at all" } as never);
+      await expect(deriveSpecs("laptop for school")).rejects.toThrow("All LLM attempts failed");
+    });
+
+    it("rethrows ValidationError from generateText", async () => {
+      const validationError = new ValidationError("text validation failed");
+      vi.mocked(generateObject).mockRejectedValue(new Error("no structured"));
+      vi.mocked(generateText).mockRejectedValue(validationError);
+      await expect(deriveSpecs("laptop for school")).rejects.toBe(validationError);
+    });
+
+    it("throws fallback error when generateText rejects with generic error", async () => {
+      vi.mocked(generateObject).mockRejectedValue(new Error("no structured"));
+      vi.mocked(generateText).mockRejectedValue(new Error("network down"));
+      await expect(deriveSpecs("laptop for school")).rejects.toThrow("All LLM attempts failed");
+    });
+
+    it("handles non-Error rejections from both attempts", async () => {
+      vi.mocked(generateObject).mockRejectedValue("plain string error");
+      vi.mocked(generateText).mockRejectedValue("another plain string");
+      await expect(deriveSpecs("laptop for school")).rejects.toThrow("All LLM attempts failed");
+    });
+
+    it("includes clarifyingAnswer in prompt", async () => {
+      vi.mocked(generateObject).mockResolvedValue({ object: validSpec } as never);
+      await deriveSpecs("laptop for school", "budget 800 CHF");
+      expect(generateObject).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.stringContaining("Original request: laptop for school"),
+        }),
+      );
+      const call = vi.mocked(generateObject).mock.calls[0][0] as { prompt: string };
+      expect(call.prompt).toContain("Clarifying context from user: budget 800 CHF");
+    });
+
+    it("truncates input to 500 chars", async () => {
+      const longInput = "a".repeat(600);
+      vi.mocked(generateObject).mockResolvedValue({ object: validSpec } as never);
+      await deriveSpecs(longInput);
+      const call = vi.mocked(generateObject).mock.calls[0][0] as { prompt: string };
+      expect(call.prompt.length).toBeLessThanOrEqual(500);
+    });
+
+    it("uses env baseURL and model when set", async () => {
+      vi.stubEnv("LLM_BASE_URL", "https://custom.example.com");
+      vi.stubEnv("LLM_MODEL", "custom-model");
+      vi.mocked(generateObject).mockResolvedValue({ object: validSpec } as never);
+      await deriveSpecs("laptop");
+      expect(createOpenAI).toHaveBeenCalledWith({
+        apiKey: "test-key",
+        baseURL: "https://custom.example.com",
+      });
+      const call = vi.mocked(generateObject).mock.calls[0][0] as { model: string };
+      expect(call.model).toBe("mock-openai:custom-model");
+    });
   });
 });
