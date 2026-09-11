@@ -51,6 +51,12 @@ describe("ProductList", () => {
     expect(html).toContain("+10 category");
   });
 
+  it("renders original description disclosure", () => {
+    const p = mkRanked({ id: "raw-test", title: "Raw listing" });
+    const html = renderToString(<ProductList products={[p]} />);
+    expect(html).toContain("Original description");
+  });
+
   it("deterministic product shows fallback text and no hybrid bar", () => {
     const p = mkRanked({
       id: "2",
