@@ -12,8 +12,7 @@ export default function PlatformSelect({
   disabled: boolean;
 }) {
   return (
-    <div
-      role="group"
+    <fieldset
       aria-label={String(dict.marketplace_label ?? "Marketplace")}
       className="flex items-center gap-2"
     >
@@ -33,6 +32,6 @@ export default function PlatformSelect({
           {String((dict as Record<string, unknown>)[`platform_${p}`] ?? p)}
         </button>
       ))}
-    </div>
+    </fieldset>
   );
 }

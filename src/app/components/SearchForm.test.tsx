@@ -88,7 +88,7 @@ describe("SearchForm edge cases", () => {
     });
     render(<SearchForm onSearch={onSearch} isLoading={false} error={null} />);
     const textareas = screen.getAllByPlaceholderText(
-      /describe your need|beschreibe dein bed.+rfnis/i,
+      /describe what you need|beschreibe dein bed.+rfnis/i,
     );
     fireEvent.change(textareas[0], { target: { value: "test query" } });
     const buttons = screen.getAllByRole("button", { name: /search$/i });
@@ -112,7 +112,7 @@ describe("SearchForm edge cases", () => {
     const onSearch = vi.fn(async () => ({ clarifyingQuestion: "What size?" }));
     render(<SearchForm onSearch={onSearch} isLoading={false} error={null} />);
     const textareas = screen.getAllByPlaceholderText(
-      /describe your need|beschreibe dein bed.+rfnis/i,
+      /describe what you need|beschreibe dein bed.+rfnis/i,
     );
     fireEvent.change(textareas[0], { target: { value: "laptop" } });
     const buttons = screen.getAllByRole("button", { name: /search with question/i });

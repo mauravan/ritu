@@ -1,14 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import de from "@/dictionaries/de.json";
 import en from "@/dictionaries/en.json";
-import SearchInput from "./SearchInput";
-import PlatformSelect from "./PlatformSelect";
+import useLocale from "./useLocale";
 
 const dictionaries = { de, en } as const;
-
-type Locale = "de" | "en";
 
 type SearchResponse = SearchResult | { clarifyingQuestion: string } | undefined;
 
@@ -28,17 +25,7 @@ type Props = {
 };
 
 export default function SearchForm({ onSearch, isLoading, error }: Props) {
-  const [locale, setLocale] = useState<Locale>("de");
-  useEffect(() => {
-    const stored = typeof window !== "undefined" ? localStorage.getItem("locale") : null;
-    if (stored === "en" || stored === "de") setLocale(stored);
-    const handleChange = (e: Event) => {
-      const detail = (e as CustomEvent<Locale>).detail;
-      if (detail === "en" || detail === "de") setLocale(detail);
-    };
-    window.addEventListener("locale-change", handleChange);
-    return () => window.removeEventListener("locale-change", handleChange);
-  }, []);
+  const [locale] = useLocale();
 
   const dict = dictionaries[locale] ?? dictionaries.de;
 
@@ -130,9 +117,12 @@ export default function SearchForm({ onSearch, isLoading, error }: Props) {
             <button
               key={p}
               type="button"
+              data-p={p}
               aria-pressed={platform === p}
               disabled={isLoading || awaitingClarification}
-              onClick={() => setPlatform(p)}
+              onClick={(e) =>
+                setPlatform((e.currentTarget as HTMLButtonElement).dataset.p as Platform)
+              }
               className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                 platform === p
                   ? "bg-black text-white border-black dark:bg-white dark:text-black dark:border-white"
