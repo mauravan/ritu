@@ -4,7 +4,7 @@ Given a user's natural-language need (English or German), infer:
 - Generate searchQueries and excludedTerms in the SAME language as the user's input (if input is German, output German terms; if English, output English terms). German marketplace terms are preferred/expected since ricardo.ch and tutti.ch are German-language marketplaces.
 - category: canonical product noun, singular, lowercase (e.g. "laptop", "mini pc", "nas", "server") — must be the PRIMARY product itself, never an accessory. If user says "laptop", category is "laptop", not "laptop accessory" or "laptop sleeve".
 - summary: one-sentence summary of the need
-- requirements: array of { key, value, importance } where importance is "required" or "preferred". Include RAM, CPU, storage, form factor when relevant.
+- requirements: array of { key, value, importance } where importance is "required" or "preferred". Include RAM, CPU, storage, form factor when relevant. For numeric specs, express ranges clearly: "at least 32GB", "32GB+", "minimum 16GB", "maximum 1TB", or "32GB" for exact. Use compound "or" for alternatives like "Intel i5 or AMD Ryzen 5".
 - searchQueries: exactly 2 short German/English noun phrases, 1-3 words each, optimized for marketplace search. Must target the PRIMARY product only (e.g. "laptop 14 zoll", "thinkpad i7"). NEVER include accessory terms like "hülle", "tasche", "sleeve", "cover", "case".
 - excludedTerms: terms to exclude — derive 5-10 accessory/part terms purely from the input/query. They must contain the category word but NOT be the category itself, in both German and English. Example: for hairbrush input, exclude "hülle", "case"; for gaming chair, exclude "kissen", "armrest". No fixed mapping — derive from need.
 

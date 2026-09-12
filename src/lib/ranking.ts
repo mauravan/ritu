@@ -1,3 +1,4 @@
+import { applyNumericFilter } from "./numericFilter";
 import type { DerivedSpec, RankedProduct, RawProduct, Tag } from "./types";
 
 const STOPWORDS = new Set([
@@ -125,8 +126,15 @@ export function rankProductsUnified(
   }
   const candidates =
     llmScores && llmScores.size > 0
-      ? products.filter((p) => llmScores.get(p.id)?.fulfillsRequired !== false)
+      ? products.filter((p) => {
+          const s = llmScores.get(p.id);
+          if (!s) return true;
+          return s.relevant !== false && s.fulfillsRequired !== false;
+        })
       : products;
+  const numericFilterResult = applyNumericFilter(candidates, spec);
+  const filteredCandidates = numericFilterResult.included;
+  const numericPenalties = numericFilterResult.penalties;
   // 2. Compute specScore (same logic as rankProducts)
   const keywords = keywordsFromSpec(spec);
   const requirementTokens = spec.requirements.map((r) => ({
@@ -135,17 +143,15 @@ export function rankProductsUnified(
     key: r.key,
     value: r.value,
   }));
-
-  // Pre-compute compare results for applicable compare signals (once per signal)
   const compareResultsBySignal = new Map<string, Map<string, number>>();
   for (const [, signal] of signalRegistry) {
-    const applies = candidates.some((pr) => signal.select(spec, pr));
+    const applies = filteredCandidates.some((pr) => signal.select(spec, pr));
     if (applies) {
-      const res = signal.compare(spec, candidates);
+      const res = signal.compare(spec, filteredCandidates);
       compareResultsBySignal.set(signal.name, res);
     }
   }
-  const scored = candidates.map((p) => {
+  const scored = filteredCandidates.map((p) => {
     const titleLower = p.title.toLowerCase();
     const rawText =
       typeof p.raw === "string" ? p.raw.toLowerCase() : JSON.stringify(p.raw ?? "").toLowerCase();
@@ -188,12 +194,12 @@ export function rankProductsUnified(
         }
       }
     }
+    const penalty = numericPenalties.get(p.id) ?? 0;
+    if (penalty !== 0) score += penalty;
 
-    const specScore = Math.min(100, score);
+    const specScore = Math.min(100, Math.max(1, score));
     return { product: p, specScore, matchedRequirements, signalBreakdown };
   });
-
-  // 3. valueScore
   const withValue = scored.map((s) => {
     let valueScore: number;
     if (s.product.priceChf === null) {
