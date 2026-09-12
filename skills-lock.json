@@ -1,6 +1,18 @@
 {
   "version": 1,
   "skills": {
+    "biome-code-review": {
+      "source": "biomejs/biome",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/biome-code-review/SKILL.md",
+      "computedHash": "822d276aa2f76ac7c6f480febc4e96a648b17ce9c6a7ff4bce8b5ad203f4f2c6"
+    },
+    "changeset": {
+      "source": "biomejs/biome",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/changeset/SKILL.md",
+      "computedHash": "c228dea814d3610070255512b288b9c566c0d4d6cf5cf5f1d23f2f49f2065ad1"
+    },
     "deploy-to-vercel": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",
