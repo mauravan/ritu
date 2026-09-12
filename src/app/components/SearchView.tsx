@@ -28,8 +28,41 @@ export default function SearchView() {
     setIsLoading(true);
     setError(null);
     setResult(null);
-    setDerivedSpec(null);
     try {
+      if (extra?.askQuestion) {
+        const res = await fetch("/api/search", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key":
+              globalThis.process?.env?.RITU_API_KEY ?? process?.env?.RITU_API_KEY ?? "dummy-key-123",
+          },
+          body: JSON.stringify({
+            query,
+            platform,
+            askQuestion: true,
+            clarifyingAnswer: extra?.clarifyingAnswer,
+            clarifyingQuestion: extra?.clarifyingQuestion,
+            originalQuery: extra?.originalQuery || query,
+          }),
+        });
+        const data = (await res.json()) as SearchResult & {
+          error?: string;
+          details?: string;
+          clarifyingQuestion?: string;
+        };
+        if (!res.ok) {
+          setError(data.error ? `${data.error}: ${data.details ?? ""}` : `Search failed: ${res.status}`);
+          return undefined;
+        }
+        if (data.clarifyingQuestion && !data.derivedSpec) {
+          return data as { clarifyingQuestion: string };
+        }
+        setResult(data as SearchResult);
+        return data as SearchResult;
+      }
+
+      let derivedForFull: DerivedSpec | undefined;
       // Step 1: derive spec
       const deriveRes = await fetch("/api/search/derive", {
         method: "POST",
@@ -47,7 +80,6 @@ export default function SearchView() {
           originalQuery: extra?.originalQuery || query,
         }),
       });
-      let derivedForFull: DerivedSpec | undefined;
       if (deriveRes.ok) {
         const deriveData = (await deriveRes.json()) as { derivedSpec?: DerivedSpec };
         if (deriveData.derivedSpec) {
@@ -56,10 +88,7 @@ export default function SearchView() {
         }
       } else {
         const errData = (await deriveRes.json()) as { error?: string; details?: string };
-        console.warn(`[RITU][CLIENT] derive failed ${deriveRes.status}`, errData);
       }
-
-      // Step 2: full search with derived spec
       const res = await fetch("/api/search", {
         method: "POST",
         headers: {
@@ -77,7 +106,6 @@ export default function SearchView() {
           derivedSpec: derivedForFull ?? undefined,
         }),
       });
-      console.log(`[RITU][CLIENT] response status=${res.status}`);
       const data = (await res.json()) as SearchResult & {
         error?: string;
         details?: string;
