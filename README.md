@@ -39,8 +39,10 @@ Browser → Next.js 16 (App Router)
 - `npm run build` — production build
 - `npm run start` — serve build
 - `npm test` — vitest run
-- `npm run lint` — biome lint
-
+- `npm run lint` — biome 
 ## Ideas
 - let the llm get the requirements and then let the user choose and change
 - let the user interact more with the llm. as in: let the user chat until ready to search
+- make it seem more responsive by showing the derived spec before loading results
+- let the user sort by value, spec and 
+- use an actual rerank model like cohere rerank 4

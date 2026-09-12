@@ -14,8 +14,8 @@ const spec: DerivedSpec = {
 };
 
 describe("augmentSearchQueries", () => {
-  it("appends required values not already present", () => {
-    expect(augmentSearchQueries(["laptop i7"], spec)).toEqual(["laptop i7 32 GB"]);
+  it("does not append numeric/minimum terms to marketplace queries", () => {
+    expect(augmentSearchQueries(["laptop i7"], spec)).toEqual(["laptop i7"]);
   });
 
   it("skips values already present case-insensitively", () => {

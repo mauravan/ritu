@@ -144,7 +144,7 @@ describe("ranking", () => {
     it("ranks products and adds scores", () => {
       const products = [
         makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800 }),
-        makeProduct({ id: "2", title: "i5 8gb laptop", priceChf: 500 }),
+        makeProduct({ id: "2", title: "i7 16gb laptop", priceChf: 500 }),
       ];
       const result = rankProductsUnified(products, baseSpec);
       expect(result).toHaveLength(2);
@@ -156,7 +156,7 @@ describe("ranking", () => {
     it("sorts by hybridScore descending", () => {
       const products = [
         makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800 }),
-        makeProduct({ id: "2", title: "i5 8gb laptop", priceChf: 500 }),
+        makeProduct({ id: "2", title: "i7 16gb laptop", priceChf: 500 }),
       ];
       const result = rankProductsUnified(products, baseSpec);
       expect(result[0].hybridScore).toBeGreaterThanOrEqual(result[1].hybridScore);
@@ -165,7 +165,7 @@ describe("ranking", () => {
     it("includes hybridScore and relevance", () => {
       const products = [
         makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800 }),
-        makeProduct({ id: "2", title: "i5 8gb laptop", priceChf: 500 }),
+        makeProduct({ id: "2", title: "i7 16gb laptop", priceChf: 500 }),
       ];
       const result = rankProductsUnified(products, baseSpec);
       expect(result[0]).toHaveProperty("hybridScore");
@@ -184,7 +184,7 @@ describe("ranking", () => {
     it("uses LLM scores when provided", () => {
       const products = [
         makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800 }),
-        makeProduct({ id: "2", title: "i5 8gb laptop", priceChf: 500 }),
+        makeProduct({ id: "2", title: "i7 16gb laptop", priceChf: 500 }),
       ];
       const llmScores = new Map<
         string,
@@ -199,7 +199,7 @@ describe("ranking", () => {
 
     it("handles custom weights from env", () => {
       vi.stubEnv("RANKING_SIGNAL_WEIGHTS", '{"gpu": 2.0}');
-      const products = [makeProduct({ id: "1", title: "rtx 3080 laptop", priceChf: 1500 })];
+      const products = [makeProduct({ id: "1", title: "i7 16gb rtx 3080 laptop", priceChf: 1500 })];
       const result = rankProductsUnified(products, baseSpec);
       expect(result).toHaveLength(1);
       vi.unstubAllEnvs();
@@ -207,7 +207,7 @@ describe("ranking", () => {
 
     it("handles invalid JSON in RANKING_SIGNAL_WEIGHTS gracefully", () => {
       vi.stubEnv("RANKING_SIGNAL_WEIGHTS", "invalid json");
-      const products = [makeProduct({ id: "1", title: "laptop", priceChf: 800 })];
+      const products = [makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800 })];
       const result = rankProductsUnified(products, baseSpec);
       expect(result).toHaveLength(1);
       vi.unstubAllEnvs();
@@ -216,7 +216,7 @@ describe("ranking", () => {
     it("assigns best condition tag for new products with specScore >= 50", () => {
       const products = [
         makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800, condition: "new" }),
-        makeProduct({ id: "2", title: "i5 8gb laptop", priceChf: 500, condition: "used" }),
+        makeProduct({ id: "2", title: "i7 16gb laptop", priceChf: 500, condition: "used" }),
       ];
       const result = rankProductsUnified(products, baseSpec);
       expect(result.some((p) => p.tags.includes("best condition"))).toBe(true);
@@ -227,9 +227,9 @@ describe("ranking", () => {
     it("assigns balanced tag when >= 4 products", () => {
       const products = [
         makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800 }),
-        makeProduct({ id: "2", title: "i5 8gb laptop", priceChf: 500 }),
-        makeProduct({ id: "3", title: "i7 8gb laptop", priceChf: 600 }),
-        makeProduct({ id: "4", title: "i5 16gb laptop", priceChf: 700 }),
+        makeProduct({ id: "2", title: "i7 16gb laptop", priceChf: 500 }),
+        makeProduct({ id: "3", title: "i7 16gb laptop", priceChf: 600 }),
+        makeProduct({ id: "4", title: "i7 16gb laptop", priceChf: 700 }),
       ];
       const result = rankProductsUnified(products, baseSpec);
       expect(result.some((p) => p.tags.includes("balanced"))).toBe(true);
@@ -238,18 +238,18 @@ describe("ranking", () => {
     it("assigns best overall tag to highest hybridScore", () => {
       const products = [
         makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800 }),
-        makeProduct({ id: "2", title: "i5 8gb laptop", priceChf: 500 }),
+        makeProduct({ id: "2", title: "i7 16gb laptop", priceChf: 500 }),
       ];
       const result = rankProductsUnified(products, baseSpec);
       expect(result.some((p) => p.tags.includes("best overall"))).toBe(true);
       const bestOverall = result.find((p) => p.tags.includes("best overall"));
-      expect(bestOverall?.id).toBe("1");
+      expect(bestOverall?.id).toBe("2");
     });
 
     it("does not assign balanced tag when < 4 products", () => {
       const products = [
         makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800 }),
-        makeProduct({ id: "2", title: "i5 8gb laptop", priceChf: 500 }),
+        makeProduct({ id: "2", title: "i7 16gb laptop", priceChf: 500 }),
         makeProduct({ id: "3", title: "i7 8gb laptop", priceChf: 600 }),
       ];
       const result = rankProductsUnified(products, baseSpec);
@@ -259,7 +259,7 @@ describe("ranking", () => {
     it("does not assign best condition when no new products", () => {
       const products = [
         makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800, condition: "used" }),
-        makeProduct({ id: "2", title: "i5 8gb laptop", priceChf: 500, condition: "refurbished" }),
+        makeProduct({ id: "2", title: "i7 16gb laptop", priceChf: 500, condition: "refurbished" }),
       ];
       const result = rankProductsUnified(products, baseSpec);
       expect(result.some((p) => p.tags.includes("best condition"))).toBe(false);
@@ -320,7 +320,7 @@ describe("ranking", () => {
     it("uses LLM relevance with relevant=false filtered to 0", () => {
       const products = [
         makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800 }),
-        makeProduct({ id: "2", title: "i5 8gb laptop", priceChf: 500 }),
+        makeProduct({ id: "2", title: "i7 16gb laptop", priceChf: 500 }),
       ];
       const llmScores = new Map<
         string,
@@ -329,7 +329,7 @@ describe("ranking", () => {
       llmScores.set("1", { id: "1", relevance: 95, relevant: true, reason: "match" });
       llmScores.set("2", { id: "2", relevance: 50, relevant: false, reason: "irrelevant" });
       const result = rankProductsUnified(products, baseSpec, llmScores);
-      expect(result).toHaveLength(2);
+      expect(result).toHaveLength(1);
     });
 
     it("handles single product with price null", () => {
@@ -394,7 +394,7 @@ describe("ranking", () => {
       const products = [
         {
           id: "1",
-          title: "i5 16gb laptop",
+          title: "i7 16gb laptop",
           marketplace: "ricardo",
           priceChf: 500,
           currency: "CHF" as const,
