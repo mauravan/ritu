@@ -151,19 +151,15 @@ export default function SearchForm({ onSearch, isLoading, error }: Props) {
             )}
             className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm dark:bg-zinc-800 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
           />
-          <button
+          <LoadingButton
             type="button"
+            isLoading={isLoading}
             disabled={isLoading || !clarifyingAnswer.trim()}
             onClick={handleConfirm}
             className="rounded-full bg-black px-6 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
           >
-            {isLoading
-              ? String(
-                  (dict as Record<string, unknown>).asking_clarification ??
-                    "Asking a clarifying question…",
-                )
-              : String((dict as Record<string, unknown>).confirm ?? "Confirm")}
-          </button>
+            {String((dict as Record<string, unknown>).confirm ?? "Confirm")}
+          </LoadingButton>
         </div>
       ) : (
         <div className="flex items-center gap-3">
