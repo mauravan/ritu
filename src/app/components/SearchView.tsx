@@ -28,7 +28,9 @@ export default function SearchView() {
     setIsLoading(true);
     setError(null);
     setResult(null);
+    setDerivedSpec(null);
     try {
+      // If asking a clarifying question, skip derive; just ask
       if (extra?.askQuestion) {
         const res = await fetch("/api/search", {
           method: "POST",
@@ -62,8 +64,8 @@ export default function SearchView() {
         return data as SearchResult;
       }
 
+      // Normal / confirmation flow: derive, then full search
       let derivedForFull: DerivedSpec | undefined;
-      // Step 1: derive spec
       const deriveRes = await fetch("/api/search/derive", {
         method: "POST",
         headers: {
@@ -88,7 +90,9 @@ export default function SearchView() {
         }
       } else {
         const errData = (await deriveRes.json()) as { error?: string; details?: string };
+        console.warn(`[RITU][CLIENT] derive failed ${deriveRes.status}`, errData);
       }
+
       const res = await fetch("/api/search", {
         method: "POST",
         headers: {
@@ -106,6 +110,7 @@ export default function SearchView() {
           derivedSpec: derivedForFull ?? undefined,
         }),
       });
+      console.log(`[RITU][CLIENT] response status=${res.status}`);
       const data = (await res.json()) as SearchResult & {
         error?: string;
         details?: string;
