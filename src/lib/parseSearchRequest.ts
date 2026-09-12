@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { SearchRequestSchema } from "./schemas";
-import type { Platform } from "./types";
+import type { DerivedSpec, Platform } from "./types";
 
 export type ParsedSearchRequest = {
   query: string;
@@ -9,6 +9,7 @@ export type ParsedSearchRequest = {
   clarifyingAnswer?: string;
   clarifyingQuestion?: string;
   originalQuery: string;
+  derivedSpec?: DerivedSpec;
 };
 
 export type ParseSearchRequestResult =
@@ -46,6 +47,7 @@ export async function parseSearchRequest(req: Request): Promise<ParseSearchReque
       clarifyingAnswer: parsed.data.clarifyingAnswer,
       clarifyingQuestion: parsed.data.clarifyingQuestion,
       originalQuery: parsed.data.originalQuery || query,
+      derivedSpec: parsed.data.derivedSpec,
     },
   };
 }
