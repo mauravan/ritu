@@ -3,8 +3,8 @@
 import { useState } from "react";
 import de from "@/dictionaries/de.json";
 import en from "@/dictionaries/en.json";
-import useLocale from "./useLocale";
 import LoadingButton from "./LoadingButton";
+import useLocale from "./useLocale";
 
 const dictionaries = { de, en } as const;
 
