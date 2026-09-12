@@ -389,5 +389,45 @@ describe("ranking", () => {
       const result = rankProductsUnified(products, baseSpec);
       expect(result).toHaveLength(2);
     });
+
+    it("drops products LLM marks as failing required specs", () => {
+      const products = [
+        {
+          id: "1",
+          title: "i5 16gb laptop",
+          marketplace: "ricardo",
+          priceChf: 500,
+          currency: "CHF" as const,
+          condition: null,
+          imageUrl: null,
+          url: "https://example.com/1",
+          location: null,
+          raw: {},
+        },
+        {
+          id: "2",
+          title: "i7 32gb laptop",
+          marketplace: "ricardo",
+          priceChf: 600,
+          currency: "CHF" as const,
+          condition: null,
+          imageUrl: null,
+          url: "https://example.com/2",
+          location: null,
+          raw: {},
+        },
+      ];
+      const spec = {
+        ...baseSpec,
+        requirements: [{ key: "ram", value: "32gb", importance: "required" as const }],
+      };
+      const llmScores = new Map([
+        ["1", { id: "1", relevance: 5, relevant: false, reason: "fails", fulfillsRequired: false }],
+        ["2", { id: "2", relevance: 95, relevant: true, reason: "match", fulfillsRequired: true }],
+      ]);
+      const result = rankProductsUnified(products as any, spec, llmScores);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("2");
+    });
   });
 });

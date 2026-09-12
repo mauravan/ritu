@@ -123,6 +123,10 @@ export function rankProductsUnified(
   } catch {
     weights = {};
   }
+  const candidates =
+    llmScores && llmScores.size > 0
+      ? products.filter((p) => llmScores.get(p.id)?.fulfillsRequired !== false)
+      : products;
   // 2. Compute specScore (same logic as rankProducts)
   const keywords = keywordsFromSpec(spec);
   const requirementTokens = spec.requirements.map((r) => ({
@@ -135,13 +139,13 @@ export function rankProductsUnified(
   // Pre-compute compare results for applicable compare signals (once per signal)
   const compareResultsBySignal = new Map<string, Map<string, number>>();
   for (const [, signal] of signalRegistry) {
-    const applies = products.some((pr) => signal.select(spec, pr));
+    const applies = candidates.some((pr) => signal.select(spec, pr));
     if (applies) {
-      const res = signal.compare(spec, products);
+      const res = signal.compare(spec, candidates);
       compareResultsBySignal.set(signal.name, res);
     }
   }
-  const scored = products.map((p) => {
+  const scored = candidates.map((p) => {
     const titleLower = p.title.toLowerCase();
     const rawText =
       typeof p.raw === "string" ? p.raw.toLowerCase() : JSON.stringify(p.raw ?? "").toLowerCase();
