@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import de from "@/dictionaries/de.json";
 import en from "@/dictionaries/en.json";
-import type { Platform, SearchResult } from "@/lib/types";
+import SearchInput from "./SearchInput";
+import PlatformSelect from "./PlatformSelect";
 
 const dictionaries = { de, en } as const;
 

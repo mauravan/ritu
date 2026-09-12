@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { tagExplanation } from "@/lib/ranking";
 import type { RankedProduct } from "@/lib/types";
 import ListingDescription from "./ListingDescription";
@@ -13,15 +14,14 @@ const tagColors: Record<string, string> = {
 };
 
 export default function ProductList({ products }: { products: RankedProduct[] }) {
-  if (products.length === 0) {
+  const total = products.length;
+  const display = useMemo(() => (total === 0 ? [] : products.slice(0, 40)), [products, total]);
+
+  if (total === 0) {
     return (
       <p className="text-sm text-zinc-500">No products found — try a different description.</p>
     );
   }
-
-  const total = products.length;
-  const display = products.slice(0, 40);
-
   return (
     <div className="space-y-4">
       <h3 className="text-sm font-semibold">
@@ -35,18 +35,16 @@ export default function ProductList({ products }: { products: RankedProduct[] })
           const hasRelevance = p.relevance !== undefined;
           const breakdown = p.rankingMeta?.breakdown ?? [];
           const hasExcluded = breakdown.some((b) => b.includes("-15 excluded"));
-          // Truncate long breakdown in UI only
           const displayBreakdown = breakdown.length > 12 ? breakdown.slice(0, 8) : breakdown;
-          const _truncatedCount = breakdown.length > 12 ? breakdown.length - 8 : 0;
 
           return (
             <div
               key={`${p.marketplace}-${p.id}`}
               className="rounded-lg border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-4 flex gap-4"
+              style={{ contentVisibility: "auto", containIntrinsicSize: "0 160px" }}
             >
               <div className="shrink-0">
                 {p.imageUrl ? (
-                  // biome-ignore lint/performance/noImgElement: Product image display
                   <img
                     src={p.imageUrl}
                     alt={p.title}
@@ -198,7 +196,7 @@ export default function ProductList({ products }: { products: RankedProduct[] })
                     ) : null}
                     {breakdown.length > 0 ? (
                       <ul className="list-disc list-inside space-y-0.5">
-                        {displayBreakdown.map((b, _i) => (
+                        {displayBreakdown.map((b) => (
                           <li key={b}>{b}</li>
                         ))}
                       </ul>

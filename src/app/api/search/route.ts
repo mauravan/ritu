@@ -28,7 +28,6 @@ export async function POST(req: Request): Promise<Response> {
       console.warn(
         `[RITU][SEARCH] askClarifying failed: ${msg} — falling back to direct deriveSpecs`,
       );
-      // graceful fallback: proceed as if askQuestion was false
     }
   }
   let spec: DerivedSpec;
@@ -61,9 +60,14 @@ export async function POST(req: Request): Promise<Response> {
     `[RITU][SEARCH] fanout ${queries.length} queries: ${queries.map((q) => `${q.marketplace}:${q.query}`).join(" | ")}`,
   );
 
-  const raw = await searchMarketplaces(searchQueries, platform);
+  // Start independent fetch early; await late
+  const rawPromise = searchMarketplaces(searchQueries, platform);
 
-  const llmScores = await runOptionalRerank(raw, spec);
+  const raw = await rawPromise;
+
+  // Parallel independent rerank
+  const rerankPromise = runOptionalRerank(raw, spec);
+  const llmScores = await rerankPromise;
 
   const products = rankProductsUnified(raw, spec, llmScores).slice(0, 40);
   console.log(
@@ -71,7 +75,7 @@ export async function POST(req: Request): Promise<Response> {
       .slice(0, 3)
       .map(
         (p) =>
-          `"${p.title.slice(0, 40)}" hybrid=\${p.hybridScore ?? p.specScore} img=${p.imageUrl?.slice(0, 60) ?? "null"}`,
+          `"${p.title.slice(0, 40)}" hybrid=${p.hybridScore ?? p.specScore} img=${p.imageUrl?.slice(0, 60) ?? "null"}`,
       )
       .join(" | ")}`,
   );
