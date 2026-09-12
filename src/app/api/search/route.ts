@@ -6,7 +6,11 @@ import { deriveSpecs } from "@/lib/llm/deriveSpecs";
 import { runOptionalRerank } from "@/lib/llm/rerank";
 import { parseSearchRequest } from "@/lib/parseSearchRequest";
 import { rankProductsUnified } from "@/lib/ranking";
-import { augmentSearchQueries, buildMarketplaceQueries, searchMarketplaces } from "@/lib/searchMarketplaces";
+import {
+  augmentSearchQueries,
+  buildMarketplaceQueries,
+  searchMarketplaces,
+} from "@/lib/searchMarketplaces";
 import type { DerivedSpec, SearchResult } from "@/lib/types";
 
 export async function POST(req: Request): Promise<Response> {
