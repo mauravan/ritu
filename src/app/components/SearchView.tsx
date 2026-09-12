@@ -148,11 +148,7 @@ export default function SearchView() {
 
       {(derivedSpec || result) && (
         <div ref={resultsRef} className="space-y-6">
-          {derivedSpec && (
-            <div className="rounded-lg border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-4">
-              <SpecPanel spec={derivedSpec} />
-            </div>
-          )}
+          {derivedSpec && !result && <SpecPanel spec={derivedSpec} />}
 
           {result && (
             <>
