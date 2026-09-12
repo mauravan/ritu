@@ -17,12 +17,7 @@ export default function LoadingButton({
   children: React.ReactNode;
 }) {
   return (
-    <button
-      type={type}
-      disabled={disabled || isLoading}
-      onClick={onClick}
-      className={className}
-    >
+    <button type={type} disabled={disabled || isLoading} onClick={onClick} className={className}>
       {isLoading ? <Spinner size={18} /> : children}
     </button>
   );

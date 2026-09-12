@@ -24,9 +24,6 @@ export async function POST(req: Request): Promise<Response> {
       );
     }
     const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json(
-      { error: "internal_error", details: msg },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "internal_error", details: msg }, { status: 500 });
   }
 }

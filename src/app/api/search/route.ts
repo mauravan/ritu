@@ -17,7 +17,8 @@ export async function POST(req: Request): Promise<Response> {
   const parsed = await parseSearchRequest(req);
   if (!parsed.ok) return parsed.errorResponse;
   const { derivedSpec: providedSpec, ...rest } = parsed.data;
-  const { query, platform, askQuestion, clarifyingAnswer, clarifyingQuestion, originalQuery } = rest;
+  const { query, platform, askQuestion, clarifyingAnswer, clarifyingQuestion, originalQuery } =
+    rest;
   if (askQuestion === true) {
     try {
       const question = await askClarifyingQuestion(query);

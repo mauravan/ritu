@@ -37,7 +37,9 @@ export default function SearchView() {
           headers: {
             "Content-Type": "application/json",
             "x-api-key":
-              globalThis.process?.env?.RITU_API_KEY ?? process?.env?.RITU_API_KEY ?? "dummy-key-123",
+              globalThis.process?.env?.RITU_API_KEY ??
+              process?.env?.RITU_API_KEY ??
+              "dummy-key-123",
           },
           body: JSON.stringify({
             query,
@@ -54,7 +56,9 @@ export default function SearchView() {
           clarifyingQuestion?: string;
         };
         if (!res.ok) {
-          setError(data.error ? `${data.error}: ${data.details ?? ""}` : `Search failed: ${res.status}`);
+          setError(
+            data.error ? `${data.error}: ${data.details ?? ""}` : `Search failed: ${res.status}`,
+          );
           return undefined;
         }
         if (data.clarifyingQuestion && !data.derivedSpec) {
