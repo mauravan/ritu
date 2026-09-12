@@ -2,6 +2,7 @@
 
 import { tagExplanation } from "@/lib/ranking";
 import type { RankedProduct } from "@/lib/types";
+import ListingDescription from "./ListingDescription";
 
 const tagColors: Record<string, string> = {
   "best value": "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
@@ -224,6 +225,7 @@ export default function ProductList({ products }: { products: RankedProduct[] })
                     )}
                   </div>
                 </details>
+                <ListingDescription marketplace={p.marketplace} id={p.id} />
               </div>
             </div>
           );
