@@ -1,13 +1,17 @@
 "use client";
 
+import { useMemo } from "react";
 import type { MarketplaceQuery } from "@/lib/types";
 
 export default function QueryList({ queries }: { queries: MarketplaceQuery[] }) {
-  const ricardo = queries.filter((q) => q.marketplace === "ricardo");
-  const tutti = queries.filter((q) => q.marketplace === "tutti");
+  const ricardo = useMemo(() => queries.filter((q) => q.marketplace === "ricardo"), [queries]);
+  const tutti = useMemo(() => queries.filter((q) => q.marketplace === "tutti"), [queries]);
 
   const renderGroup = (label: string, items: MarketplaceQuery[], color: string) => (
-    <div className="space-y-2">
+    <div
+      className="space-y-2"
+      style={{ contentVisibility: "auto", containIntrinsicSize: "0 80px" }}
+    >
       <div className="flex items-center gap-2">
         <span className={`rounded-full px-2 py-1 text-xs font-medium ${color}`}>{label}</span>
         <span className="text-xs text-zinc-500">{items.length} queries</span>
