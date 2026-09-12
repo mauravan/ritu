@@ -4,6 +4,7 @@ import { useState } from "react";
 import de from "@/dictionaries/de.json";
 import en from "@/dictionaries/en.json";
 import useLocale from "./useLocale";
+import LoadingButton from "./LoadingButton";
 
 const dictionaries = { de, en } as const;
 
@@ -166,17 +167,17 @@ export default function SearchForm({ onSearch, isLoading, error }: Props) {
         </div>
       ) : (
         <div className="flex items-center gap-3">
-          <button
+          <LoadingButton
             type="submit"
+            isLoading={isLoading}
             disabled={isLoading || query.trim().length < 3 || awaitingClarification}
             className="rounded-full bg-black px-6 py-2 text-sm font-medium text-white disabled:opacity-50 hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
           >
-            {isLoading
-              ? String((dict as Record<string, unknown>).searching_marketplaces ?? "Searching…")
-              : String((dict as Record<string, unknown>).search_button ?? "Search")}
-          </button>
-          <button
+            {String((dict as Record<string, unknown>).search_button ?? "Search")}
+          </LoadingButton>
+          <LoadingButton
             type="button"
+            isLoading={isLoading}
             disabled={isLoading || query.trim().length < 3 || awaitingClarification}
             onClick={handleSearchWithQuestion}
             className="rounded-full border border-zinc-300 bg-white px-6 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
@@ -184,15 +185,7 @@ export default function SearchForm({ onSearch, isLoading, error }: Props) {
             {String(
               (dict as Record<string, unknown>).search_with_question ?? "Search with question",
             )}
-          </button>
-          {isLoading && (
-            <span className="text-sm text-zinc-500">
-              {String(
-                (dict as Record<string, unknown>).searching_marketplaces ??
-                  "Searching marketplaces…",
-              )}
-            </span>
-          )}
+          </LoadingButton>
         </div>
       )}
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}

@@ -71,4 +71,5 @@ export const SearchRequestSchema = z.object({
   clarifyingAnswer: z.string().optional(),
   clarifyingQuestion: z.string().optional(),
   originalQuery: z.string().optional(),
+  derivedSpec: DerivedSpecSchema.optional(),
 });

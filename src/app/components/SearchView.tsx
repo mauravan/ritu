@@ -1,13 +1,15 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { Platform, SearchResult } from "@/lib/types";
+import type { DerivedSpec, Platform, SearchResult } from "@/lib/types";
 import ProductList from "./ProductList";
 import QueryList from "./QueryList";
 import SearchForm from "./SearchForm";
 import SpecPanel from "./SpecPanel";
+
 export default function SearchView() {
   const [result, setResult] = useState<SearchResult | null>(null);
+  const [derivedSpec, setDerivedSpec] = useState<DerivedSpec | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -26,7 +28,38 @@ export default function SearchView() {
     setIsLoading(true);
     setError(null);
     setResult(null);
+    setDerivedSpec(null);
     try {
+      // Step 1: derive spec
+      const deriveRes = await fetch("/api/search/derive", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key":
+            globalThis.process?.env?.RITU_API_KEY ?? process?.env?.RITU_API_KEY ?? "dummy-key-123",
+        },
+        body: JSON.stringify({
+          query,
+          platform,
+          askQuestion: false,
+          clarifyingAnswer: extra?.clarifyingAnswer,
+          clarifyingQuestion: extra?.clarifyingQuestion,
+          originalQuery: extra?.originalQuery || query,
+        }),
+      });
+      let derivedForFull: DerivedSpec | undefined;
+      if (deriveRes.ok) {
+        const deriveData = (await deriveRes.json()) as { derivedSpec?: DerivedSpec };
+        if (deriveData.derivedSpec) {
+          setDerivedSpec(deriveData.derivedSpec);
+          derivedForFull = deriveData.derivedSpec;
+        }
+      } else {
+        const errData = (await deriveRes.json()) as { error?: string; details?: string };
+        console.warn(`[RITU][CLIENT] derive failed ${deriveRes.status}`, errData);
+      }
+
+      // Step 2: full search with derived spec
       const res = await fetch("/api/search", {
         method: "POST",
         headers: {
@@ -41,6 +74,7 @@ export default function SearchView() {
           clarifyingAnswer: extra?.clarifyingAnswer,
           clarifyingQuestion: extra?.clarifyingQuestion,
           originalQuery: extra?.originalQuery || query,
+          derivedSpec: derivedForFull ?? undefined,
         }),
       });
       console.log(`[RITU][CLIENT] response status=${res.status}`);
@@ -84,43 +118,53 @@ export default function SearchView() {
     <div className="space-y-8">
       <SearchForm onSearch={handleSearch} isLoading={isLoading} error={error} />
 
-      {result && (
+      {(derivedSpec || result) && (
         <div ref={resultsRef} className="space-y-6">
-          <div className="rounded-lg border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-4">
-            <p className="text-sm">
-              <span className="text-zinc-500">Query:</span>{" "}
-              <span className="italic">&ldquo;{result.input}&rdquo;</span>
-            </p>
-          </div>
-
-          {(result.clarifyingQuestion || result.clarifyingAnswer) && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:bg-amber-900/20 dark:border-amber-800">
-              <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                Clarifying context
-              </p>
-              {result.clarifyingQuestion && (
-                <p className="text-sm text-zinc-700 dark:text-zinc-200 mt-1">
-                  Q: {result.clarifyingQuestion}
-                </p>
-              )}
-              {result.clarifyingAnswer && (
-                <p className="text-sm text-zinc-700 dark:text-zinc-200 mt-1">
-                  Your answer: {result.clarifyingAnswer}
-                </p>
-              )}
+          {derivedSpec && (
+            <div className="rounded-lg border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-4">
+              <SpecPanel spec={derivedSpec} />
             </div>
           )}
 
-          <SpecPanel spec={result.derivedSpec} />
+          {result && (
+            <>
+              <div className="rounded-lg border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-4">
+                <p className="text-sm">
+                  <span className="text-zinc-500">Query:</span>{" "}
+                  <span className="italic">&ldquo;{result.input}&rdquo;</span>
+                </p>
+              </div>
 
-          <QueryList queries={result.queries} />
+              {(result.clarifyingQuestion || result.clarifyingAnswer) && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:bg-amber-900/20 dark:border-amber-800">
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                    Clarifying context
+                  </p>
+                  {result.clarifyingQuestion && (
+                    <p className="text-sm text-zinc-700 dark:text-zinc-200 mt-1">
+                      Q: {result.clarifyingQuestion}
+                    </p>
+                  )}
+                  {result.clarifyingAnswer && (
+                    <p className="text-sm text-zinc-700 dark:text-zinc-200 mt-1">
+                      Your answer: {result.clarifyingAnswer}
+                    </p>
+                  )}
+                </div>
+              )}
 
-          <ProductList products={result.products} />
+              <SpecPanel spec={result.derivedSpec} />
 
-          {result.products.length === 0 && (
-            <p className="text-xs text-amber-600">
-              No products found — try a different description.
-            </p>
+              <QueryList queries={result.queries} />
+
+              <ProductList products={result.products} />
+
+              {result.products.length === 0 && (
+                <p className="text-xs text-amber-600">
+                  No products found — try a different description.
+                </p>
+              )}
+            </>
           )}
         </div>
       )}

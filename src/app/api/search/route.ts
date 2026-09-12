@@ -16,8 +16,8 @@ import type { DerivedSpec, SearchResult } from "@/lib/types";
 export async function POST(req: Request): Promise<Response> {
   const parsed = await parseSearchRequest(req);
   if (!parsed.ok) return parsed.errorResponse;
-  const { query, platform, askQuestion, clarifyingAnswer, clarifyingQuestion, originalQuery } =
-    parsed.data;
+  const { derivedSpec: providedSpec, ...rest } = parsed.data;
+  const { query, platform, askQuestion, clarifyingAnswer, clarifyingQuestion, originalQuery } = rest;
   if (askQuestion === true) {
     try {
       const question = await askClarifyingQuestion(query);
@@ -31,25 +31,30 @@ export async function POST(req: Request): Promise<Response> {
     }
   }
   let spec: DerivedSpec;
-  try {
-    spec = await deriveSpecs(query, clarifyingAnswer);
-    console.log(`[RITU][SEARCH] derivedSpec=${JSON.stringify(spec)}`);
-  } catch (err) {
-    if (err instanceof ValidationError) {
-      console.warn(`[RITU][SEARCH] validation ${err.message}`);
-      return NextResponse.json(
-        { error: "validation_error", details: err.message },
-        { status: 400 },
-      );
+  if (providedSpec) {
+    spec = providedSpec;
+    console.log(`[RITU][SEARCH] using provided derivedSpec category=${spec.category}`);
+  } else {
+    try {
+      spec = await deriveSpecs(query, clarifyingAnswer);
+      console.log(`[RITU][SEARCH] derivedSpec=${JSON.stringify(spec)}`);
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        console.warn(`[RITU][SEARCH] validation ${err.message}`);
+        return NextResponse.json(
+          { error: "validation_error", details: err.message },
+          { status: 400 },
+        );
+      }
+      if (err instanceof SpecDerivationError) {
+        console.warn(`[RITU][SEARCH] spec error ${err.message}`);
+        return NextResponse.json(
+          { error: "spec_derivation_failed", details: err.message },
+          { status: 502 },
+        );
+      }
+      throw err;
     }
-    if (err instanceof SpecDerivationError) {
-      console.warn(`[RITU][SEARCH] spec error ${err.message}`);
-      return NextResponse.json(
-        { error: "spec_derivation_failed", details: err.message },
-        { status: 502 },
-      );
-    }
-    throw err;
   }
 
   spec.searchQueries = sanitizeSearchQueries(spec);
