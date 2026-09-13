@@ -1,5 +1,6 @@
 import pLimit from "p-limit";
 import { describe, expect, it, vi } from "vitest";
+import { logger } from "../logger";
 import {
   extractRetryAfter,
   isRateLimitedError,
@@ -218,7 +219,7 @@ describe("rateLimit", () => {
 
   describe("withRetry", () => {
     it("retries on rate limit error", async () => {
-      vi.useFakeTimers();
+      vi.useFakeTimers({ shouldAdvanceTime: true });
       let attempts = 0;
       const promise = withRetry(async () => {
         attempts++;
@@ -264,5 +265,43 @@ describe("rateLimit", () => {
       ).rejects.toThrow("network error");
       expect(attempts).toBe(1);
     });
+  });
+});
+
+describe("rate limit dispatch spacing", () => {
+  it("spaces concurrent limiter calls by the interval and logs dispatch", async () => {
+    vi.useFakeTimers();
+    const logSpy = vi.spyOn(logger, "info").mockImplementation(() => {});
+    const limiter = pLimit(1);
+    const timestamps: number[] = [];
+    const promise1 = throttled(
+      limiter,
+      2,
+      async () => {
+        timestamps.push(Date.now());
+        return "a";
+      },
+      "ricardo",
+    );
+    const promise2 = throttled(
+      limiter,
+      2,
+      async () => {
+        timestamps.push(Date.now());
+        return "b";
+      },
+      "ricardo",
+    );
+    await vi.advanceTimersByTimeAsync(1500);
+    const [r1, r2] = await Promise.all([promise1, promise2]);
+    expect(r1).toBe("a");
+    expect(r2).toBe("b");
+    expect(timestamps.length).toBe(2);
+    expect(timestamps[1] - timestamps[0]).toBeGreaterThanOrEqual(500);
+    const logs = logSpy.mock.calls.map((c) => c[0] as string);
+    expect(logs.some((l) => l.includes("dispatch complete"))).toBe(true);
+    expect(logs.some((l) => l.includes("throttle"))).toBe(true);
+    logSpy.mockRestore();
+    vi.useRealTimers();
   });
 });

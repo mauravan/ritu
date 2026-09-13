@@ -1,6 +1,7 @@
 import { generateObject } from "ai";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DerivedSpec, RawProduct } from "../types";
+import { logger } from "../logger";
 import { getRerankConfig, rerankWithLLM } from "./rerank";
 
 vi.mock("ai", () => ({
@@ -191,7 +192,7 @@ describe("rerank", () => {
     });
 
     it("warns and returns empty map when LLM returns zero results", async () => {
-      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
       vi.mocked(generateObject).mockResolvedValue({ object: { results: [] } } as never);
       const result = await rerankWithLLM([mkProduct("1", "laptop")], spec);
       expect(result.size).toBe(0);
@@ -200,7 +201,7 @@ describe("rerank", () => {
     });
 
     it("returns empty map on generic error", async () => {
-      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
       vi.mocked(generateObject).mockRejectedValue(new Error("bad gateway"));
       const result = await rerankWithLLM([mkProduct("1", "laptop")], spec);
       expect(result.size).toBe(0);
@@ -209,7 +210,7 @@ describe("rerank", () => {
     });
 
     it("returns empty map on timeout", async () => {
-      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
       vi.stubEnv("LLM_RERANK_TIMEOUT_MS", "1000");
       vi.useFakeTimers();
       vi.mocked(generateObject).mockImplementation(() => new Promise(() => {}) as never);
@@ -253,7 +254,7 @@ describe("rerank", () => {
       expect(call.prompt).toContain("Requirements: none");
     });
     it("handles error without stack", async () => {
-      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
       const err = Object.create(Error.prototype) as Error;
       vi.mocked(generateObject).mockRejectedValue(err);
       const result = await rerankWithLLM([mkProduct("1", "laptop")], spec);
@@ -263,7 +264,7 @@ describe("rerank", () => {
     });
 
     it("handles non-Error rejection", async () => {
-      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
       vi.mocked(generateObject).mockRejectedValue({ status: 500 });
       const result = await rerankWithLLM([mkProduct("1", "laptop")], spec);
       expect(result.size).toBe(0);

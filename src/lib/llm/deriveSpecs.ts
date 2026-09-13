@@ -1,3 +1,4 @@
+import { logger } from "../logger";
 import { createOpenAI } from "@ai-sdk/openai";
 import { generateObject, generateText } from "ai";
 import { ValidationError } from "../errors";
@@ -6,7 +7,6 @@ import type { DerivedSpec } from "../types";
 import { SYSTEM_PROMPT } from "./prompt";
 
 function tryParseJsonFromText(text: string): unknown | null {
-  // Try direct JSON, then extract from markdown code block or first { ... }
   const trimmed = text.trim();
   try {
     return JSON.parse(trimmed);
@@ -44,9 +44,8 @@ export async function deriveSpecs(input: string, clarifyingAnswer?: string): Pro
 
   const openai = createOpenAI({ apiKey, baseURL });
 
-  // Attempt 1: structured generateObject
   try {
-    console.log(
+    logger.info(
       `[RITU][LLM] deriveSpecs input="${trimmed.slice(0, 120)}" model=${model} baseURL=${baseURL}`,
     );
     const start = Date.now();
@@ -57,51 +56,49 @@ export async function deriveSpecs(input: string, clarifyingAnswer?: string): Pro
       prompt: promptText,
       temperature: 0.2,
     });
-    console.log(
+    logger.info(
       `[RITU][LLM] spec ok ${Date.now() - start}ms category=${object.category} queries=${JSON.stringify(object.searchQueries)} req=${JSON.stringify(object.requirements)} excluded=${JSON.stringify(object.excludedTerms)}`,
     );
     return object;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.warn(`[RITU][LLM] generateObject failed: ${msg} — trying generateText fallback`);
+    logger.warn(`[RITU][LLM] generateObject failed: ${msg} — trying generateText fallback`);
     if (err instanceof ValidationError) throw err;
-  }
 
-  // Attempt 2: generateText + manual JSON parse (handles models that don't support structured output)
-  try {
-    const { text } = await generateText({
-      model: openai(model),
-      system:
-        SYSTEM_PROMPT +
-        '\n\nReturn ONLY valid JSON matching this shape: {"category": string, "summary": string, "requirements": [{"key": string, "value": string, "importance": "required"|"preferred"}], "searchQueries": string[], "excludedTerms": string[]}. No markdown, no extra text.',
-      prompt: promptText,
-      temperature: 0.2,
-    });
-    console.log(`[RITU][LLM] generateText raw: ${text.slice(0, 500)}`);
-    const parsed = tryParseJsonFromText(text);
-    if (parsed) {
-      const validated = DerivedSpecSchema.safeParse(parsed);
-      if (validated.success) {
-        console.log(`[RITU][LLM] generateText fallback ok category=${validated.data.category}`);
-        return validated.data;
+    try {
+      const { text } = await generateText({
+        model: openai(model),
+        system:
+          SYSTEM_PROMPT +
+          '\n\nReturn ONLY valid JSON matching this shape: {"category": string, "summary": string, "requirements": [{"key": string, "value": string, "importance": "required"|"preferred"}], "searchQueries": string[], "excludedTerms": string[]}. No markdown, no extra text.',
+        prompt: promptText,
+        temperature: 0.2,
+      });
+      logger.info(`[RITU][LLM] generateText raw: ${text.slice(0, 500)}`);
+      const parsed = tryParseJsonFromText(text);
+      if (parsed) {
+        const validated = DerivedSpecSchema.safeParse(parsed);
+        if (validated.success) {
+          logger.info(`[RITU][LLM] generateText fallback ok category=${validated.data.category}`);
+          return validated.data;
+        } else {
+          const flat = validated.error.flatten();
+          throw new ValidationError("LLM response validation failed", {
+            fields: flat.fieldErrors as Record<string, string[]>,
+            raw: parsed,
+          });
+        }
       } else {
-        const flat = validated.error.flatten();
-        throw new ValidationError("LLM response validation failed", {
-          fields: flat.fieldErrors as Record<string, string[]>,
-          raw: parsed,
-        });
+        logger.warn("[RITU][LLM] generateText fallback could not parse JSON");
       }
-    } else {
-      console.warn("[RITU][LLM] generateText fallback could not parse JSON");
+    } catch (innerErr) {
+      if (innerErr instanceof ValidationError) throw innerErr;
+      logger.warn(
+        `[RITU][LLM] generateText fallback failed: ${innerErr instanceof Error ? innerErr.message : String(innerErr)}`,
+      );
     }
-  } catch (err) {
-    if (err instanceof ValidationError) throw err;
-    console.warn(
-      `[RITU][LLM] generateText fallback failed: ${err instanceof Error ? err.message : String(err)}`,
-    );
   }
   throw new Error("All LLM attempts failed — cannot derive specs");
 }
 
-// Test exports
 export { tryParseJsonFromText };

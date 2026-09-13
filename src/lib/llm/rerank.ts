@@ -1,4 +1,5 @@
 import { createOpenAI } from "@ai-sdk/openai";
+import { logger } from "../logger";
 import { generateObject } from "ai";
 import { z } from "zod";
 import type { DerivedSpec, RawProduct } from "../types";
@@ -61,7 +62,7 @@ export async function rerankWithLLM(
 
   const config = getRerankConfig();
   if (!config) {
-    console.log("[RITU][RANK] LLM rerank skipped — no LLM_API_KEY");
+    logger.info("[RITU][RANK] LLM rerank skipped — no LLM_API_KEY");
     return new Map();
   }
   const { apiKey, baseURL, model, timeoutMs, maxBatch } = config;
@@ -117,11 +118,11 @@ ${items.map((it) => `- id=${JSON.stringify(it.id)} title=${JSON.stringify(it.tit
         fulfillsRequired: r.fulfillsRequired ?? true,
       });
     }
-    console.log(
+    logger.info(
       `[RITU][RANK] LLM rerank ok ${map.size}/${capped.length} model=${model} baseURL=${baseURL} timeout=${timeoutMs}ms category="${spec.category}" elapsed=${Date.now() - t0}ms`,
     );
     if (map.size === 0 && capped.length > 0) {
-      console.warn(
+      logger.warn(
         `[RITU][RANK] LLM rerank returned 0/${capped.length} — possible model/schema mismatch model=${model} baseURL=${baseURL} category="${spec.category}" elapsed=${Date.now() - t0}ms`,
       );
     }
@@ -137,11 +138,11 @@ ${items.map((it) => `- id=${JSON.stringify(it.id)} title=${JSON.stringify(it.tit
       .join(",");
     const base = `[RITU][RANK] LLM rerank failed category="${spec.category}" model=${model} baseURL=${baseURL} timeout=${timeoutMs}ms batch=${capped.length}/${products.length} elapsed=${elapsed}ms sampleIds=[${sampleIds}] error=${msg}`;
     if (msg.includes("timeout")) {
-      console.warn(
+      logger.warn(
         `${base} stack=${stack} Hint: set LLM_RERANK_MODEL to a faster model (e.g. openai/gpt-4o-mini) or increase LLM_RERANK_TIMEOUT_MS.`,
       );
     } else {
-      console.warn(`${base} stack=${stack}`);
+      logger.warn(`${base} stack=${stack}`);
     }
     return new Map();
   }
@@ -152,7 +153,7 @@ export async function runOptionalRerank(
   spec: DerivedSpec,
 ): Promise<Map<string, RerankResult> | undefined> {
   if (!process.env.LLM_API_KEY) {
-    console.log("[RITU][RANK] LLM rerank skipped — no LLM_API_KEY");
+    logger.info("[RITU][RANK] LLM rerank skipped — no LLM_API_KEY");
     return undefined;
   }
   const cfg = getRerankConfig();
@@ -171,17 +172,17 @@ export async function runOptionalRerank(
       location: r.location,
       raw: r.raw,
     }));
-    console.log(
+    logger.info(
       `[RITU][RANK] LLM rerank start deterministic=${raw.length} batch=${toRerank.length}/${raw.length} maxBatch=${maxBatch} model=${cfg?.model ?? "unknown"} baseURL=${cfg?.baseURL ?? "unknown"} timeoutMs=${cfg?.timeoutMs ?? 15000} category="${spec.category}"`,
     );
     const llmScores = await rerankWithLLM(toRerank, spec);
     const elapsed = Date.now() - tRerank0;
     if (!llmScores || llmScores.size === 0) {
-      console.warn(
+      logger.warn(
         `[RITU][RANK] LLM rerank yielded 0/${toRerank.length} (empty map) — falling back to deterministic. deterministic=${raw.length} maxBatch=${maxBatch} model=${cfg?.model} baseURL=${cfg?.baseURL} timeoutMs=${cfg?.timeoutMs} category="${spec.category}" elapsed=${elapsed}ms specSummary="${spec.summary.slice(0, 80)}"`,
       );
     } else {
-      console.log(
+      logger.info(
         `[RITU][RANK] LLM rerank done ${llmScores.size}/${toRerank.length} elapsed=${elapsed}ms category="${spec.category}"`,
       );
     }
@@ -191,7 +192,7 @@ export async function runOptionalRerank(
     const msg = e instanceof Error ? e.message : String(e);
     const stack = e instanceof Error ? (e.stack?.split("\n").slice(0, 4).join(" | ") ?? "") : "";
     const errName = e instanceof Error ? e.name : typeof e;
-    console.warn(
+    logger.warn(
       `[RITU][RANK] LLM rerank failed — outer catch, using deterministic. deterministic=${raw.length} maxBatch=${maxBatch} model=${cfg?.model} baseURL=${cfg?.baseURL} timeoutMs=${cfg?.timeoutMs} category="${spec.category}" specSummary="${spec.summary.slice(0, 80)}" elapsed=${elapsed}ms error=${errName}: ${msg} stack=${stack}`,
     );
     return undefined;

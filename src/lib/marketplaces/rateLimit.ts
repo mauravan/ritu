@@ -1,4 +1,5 @@
 // Central rate-limit module for ricardo and tutti
+import { logger } from "../logger";
 // Env-configurable: 1 concurrent, 1 req/s default; increase at own risk (may trigger 429/1015)
 
 import pLimit, { type LimitFunction } from "p-limit";
@@ -34,15 +35,22 @@ let lastTuttiCall = 0;
 
 async function throttle(service: "ricardo" | "tutti"): Promise<void> {
   const rps = service === "ricardo" ? ricardoRps : tuttiRps;
+  logger.info(
+    `[RITU][RATE] throttle service=${service} rps=${rps} interval=${Math.round(1000 / rps)}ms`,
+  );
   const interval = 1000 / rps;
   const last = service === "ricardo" ? lastRicardoCall : lastTuttiCall;
   const now = Date.now();
   const wait = last + interval - now;
   if (wait > 0) {
+    logger.info(`[RITU][RATE] throttle wait=${Math.round(wait)}ms service=${service}`);
     await new Promise<void>((resolve) => setTimeout(resolve, wait));
   }
   if (service === "ricardo") lastRicardoCall = Date.now();
   else lastTuttiCall = Date.now();
+  logger.info(
+    `[RITU][RATE] throttle updated last=${service === "ricardo" ? lastRicardoCall : lastTuttiCall} service=${service}`,
+  );
 }
 
 /**
@@ -57,19 +65,40 @@ export async function throttled<T>(
 ): Promise<T> {
   // If service is known, use shared throttle state; otherwise use local interval
   if (service) {
+    logger.info(
+      `[RITU][RATE] limiter enter service=${service} concurrency=${service === "ricardo" ? ricardoConcurrency : tuttiConcurrency}`,
+    );
     return limiter(async () => {
       await throttle(service);
-      return fn();
+      const start = Date.now();
+      try {
+        const result = await fn();
+        logger.info(
+          `[RITU][RATE] dispatch complete service=${service} timestamp=${start} duration=${Date.now() - start}`,
+        );
+        return result;
+      } catch (e) {
+        logger.info(
+          `[RITU][RATE] dispatch error service=${service} timestamp=${start} error=${e instanceof Error ? e.message : String(e)}`,
+        );
+        throw e;
+      }
     });
   }
   let last = 0;
   const interval = 1000 / rps;
   return limiter(async () => {
+    const start = Date.now();
+    logger.info(`[RITU][RATE] dispatch start no-service timestamp=${start}`);
     const now = Date.now();
     const wait = Math.max(0, last + interval - now);
     if (wait > 0) await new Promise<void>((r) => setTimeout(r, wait));
+    const result = await fn();
+    logger.info(
+      `[RITU][RATE] dispatch complete no-service timestamp=${start} duration=${Date.now() - start}`,
+    );
     last = Date.now();
-    return fn();
+    return result;
   });
 }
 
@@ -203,8 +232,11 @@ export async function withRetry<T>(fn: () => Promise<T>, service: "ricardo" | "t
       const waitMs = retryAfterMs !== null && retryAfterMs > 0 ? retryAfterMs : delayMs;
       // Cloudflare 1015 with retry-after 0 -> use default delayMs, not 0
       const effectiveWait = waitMs === 0 ? delayMs : waitMs;
-      console.warn(
+      logger.warn(
         `[RITU][RATE] ${service} 429 retry ${attempt + 1}/${maxRetries} after ${effectiveWait}ms`,
+      );
+      logger.info(
+        `[RITU][RATE] retry attempt=${attempt + 1}/${maxRetries} service=${service} limited=${limited} retryAfterMs=${retryAfterMs} waitMs=${waitMs} effectiveWait=${effectiveWait}`,
       );
       await new Promise<void>((r) => setTimeout(r, effectiveWait));
       attempt++;

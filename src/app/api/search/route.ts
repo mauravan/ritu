@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { sanitizeSearchQueries } from "@/lib/accessoryGuard";
 import { SpecDerivationError, ValidationError } from "@/lib/errors";
 import { askClarifyingQuestion } from "@/lib/llm/askClarifying";
@@ -22,11 +23,11 @@ export async function POST(req: Request): Promise<Response> {
   if (askQuestion === true) {
     try {
       const question = await askClarifyingQuestion(query);
-      console.log(`[RITU][SEARCH] clarifying question="${question.slice(0, 140)}"`);
+      logger.info(`[RITU][SEARCH] clarifying question="${question.slice(0, 140)}"`);
       return NextResponse.json({ clarifyingQuestion: question }, { status: 200 });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      console.warn(
+      logger.warn(
         `[RITU][SEARCH] askClarifying failed: ${msg} — falling back to direct deriveSpecs`,
       );
     }
@@ -34,21 +35,21 @@ export async function POST(req: Request): Promise<Response> {
   let spec: DerivedSpec;
   if (providedSpec) {
     spec = providedSpec;
-    console.log(`[RITU][SEARCH] using provided derivedSpec category=${spec.category}`);
+    logger.info(`[RITU][SEARCH] using provided derivedSpec category=${spec.category}`);
   } else {
     try {
       spec = await deriveSpecs(query, clarifyingAnswer);
-      console.log(`[RITU][SEARCH] derivedSpec=${JSON.stringify(spec)}`);
+      logger.info(`[RITU][SEARCH] derivedSpec=${JSON.stringify(spec)}`);
     } catch (err) {
       if (err instanceof ValidationError) {
-        console.warn(`[RITU][SEARCH] validation ${err.message}`);
+        logger.warn(`[RITU][SEARCH] validation ${err.message}`);
         return NextResponse.json(
           { error: "validation_error", details: err.message },
           { status: 400 },
         );
       }
       if (err instanceof SpecDerivationError) {
-        console.warn(`[RITU][SEARCH] spec error ${err.message}`);
+        logger.warn(`[RITU][SEARCH] spec error ${err.message}`);
         return NextResponse.json(
           { error: "spec_derivation_failed", details: err.message },
           { status: 502 },
@@ -62,7 +63,7 @@ export async function POST(req: Request): Promise<Response> {
   const searchQueries = augmentSearchQueries(spec.searchQueries, spec);
 
   const queries = buildMarketplaceQueries(searchQueries, platform);
-  console.log(
+  logger.info(
     `[RITU][SEARCH] fanout ${queries.length} queries: ${queries.map((q) => `${q.marketplace}:${q.query}`).join(" | ")}`,
   );
 
@@ -76,7 +77,7 @@ export async function POST(req: Request): Promise<Response> {
   const llmScores = await rerankPromise;
 
   const products = rankProductsUnified(raw, spec, llmScores).slice(0, 40);
-  console.log(
+  logger.info(
     `[RITU][SEARCH] ranked=${products.length} top3: ${products
       .slice(0, 3)
       .map(
@@ -86,12 +87,12 @@ export async function POST(req: Request): Promise<Response> {
       .join(" | ")}`,
   );
   if (raw.length !== products.length || llmScores?.size) {
-    console.log(
+    logger.info(
       `[RITU][RANK] hybrid: raw ${raw.length} -> llm filtered ${llmScores?.size ?? 0} -> final ${products.length}`,
     );
   }
   if (products.length > 0)
-    console.log(
+    logger.info(
       `[RITU][SEARCH] raw->ranked mapping complete, total queries=${queries.length} total products=${raw.length} ranked=${products.length}`,
     );
 

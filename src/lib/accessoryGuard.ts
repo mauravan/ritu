@@ -1,4 +1,5 @@
 import type { DerivedSpec } from "./types";
+import { logger } from "./logger";
 
 const ACCESSORY_TERMS: Record<string, true> = {
   hülle: true,
@@ -30,7 +31,7 @@ export function sanitizeSearchQueries(spec: DerivedSpec): string[] {
     const tokens = qLower.split(/[^a-z0-9]+/g).filter(Boolean);
     for (const tok of tokens) {
       if (Object.hasOwn(ACCESSORY_TERMS, tok)) {
-        console.log(
+        logger.info(
           `[RITU][SEARCH] dropping accessory query "${q}" for category "${spec.category}"`,
         );
         return false;
@@ -39,7 +40,7 @@ export function sanitizeSearchQueries(spec: DerivedSpec): string[] {
     return true;
   });
   if (filtered.length === 0 && before > 0) {
-    console.warn(`[RITU][SEARCH] all queries dropped by accessory guard, restoring original`);
+    logger.warn(`[RITU][SEARCH] all queries dropped by accessory guard, restoring original`);
     return originalQueries;
   }
   if (filtered.length === 0) {

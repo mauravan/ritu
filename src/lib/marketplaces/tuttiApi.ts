@@ -1,4 +1,5 @@
 import { type Listing, TuttiClient } from "tutti-api";
+import { logger } from "../logger";
 import type { RawProduct } from "../types";
 
 function parsePrice(text: string): number | null {
@@ -67,7 +68,7 @@ export function listingToRawProduct(listing: Listing): RawProduct {
 }
 
 export async function searchTuttiViaApi(query: string, limit: number): Promise<RawProduct[]> {
-  console.log(`[RITU][TUTTI-API] search query="${query}" limit=${limit}`);
+  logger.info(`[RITU][TUTTI-API] search query="${query}" limit=${limit}`);
   try {
     const client = new TuttiClient();
 
@@ -80,16 +81,16 @@ export async function searchTuttiViaApi(query: string, limit: number): Promise<R
 
     const listings = result.listings ?? [];
     if (listings.length === 0) {
-      console.log(`[RITU][TUTTI-API] search query="${query}" -> 0 (no listings)`);
+      logger.info(`[RITU][TUTTI-API] search query="${query}" -> 0 (no listings)`);
       return [];
     }
 
     const mapped = listings.map(listingToRawProduct).slice(0, limit);
-    console.log(`[RITU][TUTTI-API] search query="${query}" -> ${mapped.length}`);
+    logger.info(`[RITU][TUTTI-API] search query="${query}" -> ${mapped.length}`);
     return mapped;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.warn(`[RITU][TUTTI-API] failed for "${query}": ${msg} falling back`);
+    logger.warn(`[RITU][TUTTI-API] failed for "${query}": ${msg} falling back`);
     const status = (err as Record<string, unknown>)?.status as number | undefined;
     if (msg.includes("429") || msg.includes("1015") || status === 429) throw err;
     return [];

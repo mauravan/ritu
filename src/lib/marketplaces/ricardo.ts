@@ -1,4 +1,5 @@
 // Ricardo adapter — now backed by ricardo-api library
+import { logger } from "../logger";
 import { RicardoClient } from "ricardo-api";
 import type { RawProduct } from "../types";
 
@@ -15,6 +16,7 @@ export function buildRicardoUrl(query: string): string {
 }
 
 export async function searchRicardo(query: string, limit = 20): Promise<RawProduct[]> {
+  logger.info(`[RITU][RICARDO] search query="${query}" limit=${limit}`);
   // ricardo-api uses mobile endpoint /m/search with AWS SigV4 (x-authorization);
   // web session cookies are not used by this endpoint and cause 403 from WAF.
   const client = new RicardoClient();

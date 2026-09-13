@@ -1,4 +1,5 @@
 import { aggregate } from "./aggregate";
+import { logger } from "./logger";
 import { buildRicardoUrl, searchRicardo } from "./marketplaces/ricardo";
 import { buildTuttiUrl, searchTutti } from "./marketplaces/tutti";
 import { parseRequirementValue } from "./parseRequirementValue";
@@ -96,22 +97,19 @@ export async function searchMarketplaces(
 
   // Handle individual rejections (aggregate behavior unchanged; rejected promises excluded from results)
   for (const rej of ricardoSettled.filter((r) => r.status === "rejected")) {
-    console.error(
-      "[RITU][SEARCH] ricardo promise rejected:",
-      (rej as PromiseRejectedResult).reason,
-    );
+    logger.error("[RITU][SEARCH] ricardo promise rejected:", (rej as PromiseRejectedResult).reason);
   }
   for (const rej of tuttiSettled.filter((r) => r.status === "rejected")) {
-    console.error("[RITU][SEARCH] tutti promise rejected:", (rej as PromiseRejectedResult).reason);
+    logger.error("[RITU][SEARCH] tutti promise rejected:", (rej as PromiseRejectedResult).reason);
   }
   const ricardoFlat = ricardoGroups.flat();
   const tuttiFlat = tuttiGroups.flat();
   const raw = aggregate([...ricardoGroups, ...tuttiGroups]);
-  console.log(
+  logger.info(
     `[RITU][SEARCH] aggregate raw=${raw.length} (ricardo ${ricardoFlat.length}+tutti ${tuttiFlat.length} -> dedup ${raw.length})`,
   );
 
-  console.log(`[RITU][SEARCH] deterministic ranked=${raw.length}`);
+  logger.info(`[RITU][SEARCH] deterministic ranked=${raw.length}`);
 
   return raw;
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { RicardoClient } from "ricardo-api";
 import { TuttiClient } from "tutti-api";
 import { extractListingDescription, formatListingDescription } from "@/lib/listingDescription";
@@ -26,7 +27,7 @@ export async function GET(req: Request): Promise<Response> {
     const description = rawText === null ? null : formatListingDescription(rawText);
     return NextResponse.json({ description });
   } catch (err) {
-    console.warn(`[RITU][DESC] fetch failed ${marketplace}:${id}`, err);
+    logger.warn(`[RITU][DESC] fetch failed ${marketplace}:${id}`, err);
     return NextResponse.json({ error: "description_fetch_failed" }, { status: 502 });
   }
 }

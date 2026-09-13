@@ -1,3 +1,4 @@
+import { logger } from "../logger";
 import { createOpenAI } from "@ai-sdk/openai";
 import { generateObject, generateText } from "ai";
 import { z } from "zod";
@@ -12,7 +13,7 @@ export async function askClarifyingQuestion(query: string): Promise<string> {
   const model = process.env.LLM_MODEL || "openai/gpt-4o-mini";
 
   if (!apiKey) {
-    console.warn(
+    logger.warn(
       "[RITU][LLM] askClarifying: LLM_API_KEY missing — falling back to deriveSpecs behavior handled by caller",
     );
     throw new Error("LLM_API_KEY missing");
@@ -31,11 +32,11 @@ Ask ONE concise clarifying question to help derive precise product specs. Focus 
       prompt,
       temperature: 0.5,
     });
-    console.log(`[RITU][LLM] askClarifying ok question="${object.question.slice(0, 140)}"`);
+    logger.info(`[RITU][LLM] askClarifying ok question="${object.question.slice(0, 140)}"`);
     return object.question;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.warn(`[RITU][LLM] askClarifying generateObject failed: ${msg} — trying generateText`);
+    logger.warn(`[RITU][LLM] askClarifying generateObject failed: ${msg} — trying generateText`);
     const { text } = await generateText({
       model: openai(model),
       system:
@@ -45,7 +46,7 @@ Ask ONE concise clarifying question to help derive precise product specs. Focus 
     });
     const q = text.trim().replace(/^"+|"+$/g, "");
     if (!q) throw new Error(`Failed to parse clarifying question from LLM: ${text.slice(0, 200)}`);
-    console.log(`[RITU][LLM] askClarifying text fallback question="${q.slice(0, 140)}"`);
+    logger.info(`[RITU][LLM] askClarifying text fallback question="${q.slice(0, 140)}"`);
     return q;
   }
 }

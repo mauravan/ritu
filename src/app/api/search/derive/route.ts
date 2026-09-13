@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { SpecDerivationError, ValidationError } from "@/lib/errors";
 import { deriveSpecs } from "@/lib/llm/deriveSpecs";
 import { parseSearchRequest } from "@/lib/parseSearchRequest";
