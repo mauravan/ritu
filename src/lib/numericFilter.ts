@@ -82,7 +82,6 @@ function compareNumeric(
     case "<":
       return productValue < requiredValue;
   }
-  return false;
 }
 
 export function applyNumericFilter(
@@ -99,13 +98,7 @@ export function applyNumericFilter(
       if (parsed.numericValue === 0) continue;
       // Skip GPU requirements handled by signal registry (comparative ranking, not numeric exclusion)
       if (/\b(gtx|rtx)\b/i.test(req.value) && /\b\d{3,4}\b/.test(req.value)) continue;
-      const rawText =
-        typeof p.raw === "string"
-          ? p.raw
-          : typeof p.raw === "object" && p.raw !== null
-            ? JSON.stringify(p.raw)
-            : "";
-      const textToSearch = `${p.title} ${rawText}`.toLowerCase();
+      const textToSearch = `${p.title}`.toLowerCase();
       const extractions = extractAllNumericFromText(textToSearch);
       const best = findBestNumeric(extractions, parsed.numericValue, parsed.unit, parsed.operator);
       if (best === null) {

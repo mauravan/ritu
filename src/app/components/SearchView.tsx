@@ -6,8 +6,15 @@ import ProductList from "./ProductList";
 import QueryList from "./QueryList";
 import SearchForm from "./SearchForm";
 import SpecPanel from "./SpecPanel";
+import de from "@/dictionaries/de.json";
+import en from "@/dictionaries/en.json";
+import useLocale from "./useLocale";
+
+const dictionaries = { de, en } as const;
 
 export default function SearchView() {
+  const [locale] = useLocale();
+  const dict = (dictionaries[locale] || dictionaries.de) as typeof en;
   const [result, setResult] = useState<SearchResult | null>(null);
   const [derivedSpec, setDerivedSpec] = useState<DerivedSpec | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -30,7 +37,6 @@ export default function SearchView() {
     setResult(null);
     setDerivedSpec(null);
     try {
-      // If asking a clarifying question, skip derive; just ask
       if (extra?.askQuestion) {
         const res = await fetch("/api/search", {
           method: "POST",
@@ -68,7 +74,6 @@ export default function SearchView() {
         return data as SearchResult;
       }
 
-      // Normal / confirmation flow: derive, then full search
       let derivedForFull: DerivedSpec | undefined;
       const deriveRes = await fetch("/api/search/derive", {
         method: "POST",
@@ -163,7 +168,7 @@ export default function SearchView() {
             <>
               <div className="rounded-lg border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-4">
                 <p className="text-sm">
-                  <span className="text-zinc-500">Query:</span>{" "}
+                  <span className="text-zinc-500">{dict.query_label}</span>{" "}
                   <span className="italic">&ldquo;{result.input}&rdquo;</span>
                 </p>
               </div>
@@ -171,16 +176,16 @@ export default function SearchView() {
               {(result.clarifyingQuestion || result.clarifyingAnswer) && (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:bg-amber-900/20 dark:border-amber-800">
                   <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                    Clarifying context
+                    {dict.clarifying_context_heading}
                   </p>
                   {result.clarifyingQuestion && (
                     <p className="text-sm text-zinc-700 dark:text-zinc-200 mt-1">
-                      Q: {result.clarifyingQuestion}
+                      {dict.clarifying_context_q.replace("{question}", result.clarifyingQuestion)}
                     </p>
                   )}
                   {result.clarifyingAnswer && (
                     <p className="text-sm text-zinc-700 dark:text-zinc-200 mt-1">
-                      Your answer: {result.clarifyingAnswer}
+                      {dict.clarifying_context_answer.replace("{answer}", result.clarifyingAnswer)}
                     </p>
                   )}
                 </div>
@@ -193,9 +198,7 @@ export default function SearchView() {
               <ProductList products={result.products} />
 
               {result.products.length === 0 && (
-                <p className="text-xs text-amber-600">
-                  No products found — try a different description.
-                </p>
+                <p className="text-xs text-amber-600">{dict.no_products_found_message}</p>
               )}
             </>
           )}

@@ -2,8 +2,15 @@
 
 import { useMemo } from "react";
 import type { MarketplaceQuery } from "@/lib/types";
+import de from "@/dictionaries/de.json";
+import en from "@/dictionaries/en.json";
+import useLocale from "./useLocale";
+
+const dictionaries = { de, en } as const;
 
 export default function QueryList({ queries }: { queries: MarketplaceQuery[] }) {
+  const [locale] = useLocale();
+  const dict = (dictionaries[locale] || dictionaries.de) as typeof en;
   const ricardo = useMemo(() => queries.filter((q) => q.marketplace === "ricardo"), [queries]);
   const tutti = useMemo(() => queries.filter((q) => q.marketplace === "tutti"), [queries]);
 
@@ -14,7 +21,9 @@ export default function QueryList({ queries }: { queries: MarketplaceQuery[] }) 
     >
       <div className="flex items-center gap-2">
         <span className={`rounded-full px-2 py-1 text-xs font-medium ${color}`}>{label}</span>
-        <span className="text-xs text-zinc-500">{items.length} queries</span>
+        <span className="text-xs text-zinc-500">
+          {dict.queries_count.replace("{count}", String(items.length))}
+        </span>
       </div>
       <div className="flex flex-wrap gap-2">
         {items.map((q) => (
@@ -34,7 +43,7 @@ export default function QueryList({ queries }: { queries: MarketplaceQuery[] }) 
 
   return (
     <div className="rounded-lg border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-6 space-y-4">
-      <h3 className="text-sm font-semibold">Marketplace Queries</h3>
+      <h3 className="text-sm font-semibold">{dict.marketplace_queries_heading}</h3>
       {renderGroup(
         "ricardo",
         ricardo,

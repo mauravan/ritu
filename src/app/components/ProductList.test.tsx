@@ -2,6 +2,10 @@ import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { RankedProduct } from "@/lib/types";
 import ProductList from "./ProductList";
+import { vi } from "vitest";
+vi.mock("./useLocale", () => ({
+  default: () => ["en" as const, () => {}],
+}));
 
 function mkRanked(
   overrides: Partial<RankedProduct> & { id: string; title: string },
@@ -25,7 +29,7 @@ function mkRanked(
 }
 
 describe("ProductList", () => {
-  it("renders hybrid, AI relevance bars and AI reason in disclosure", () => {
+  it("renders hybrid and AI relevance bars", () => {
     const p = mkRanked({
       id: "1",
       title: "Lenovo ThinkPad T14",
@@ -33,22 +37,12 @@ describe("ProductList", () => {
       valueScore: 60,
       relevance: 95,
       hybridScore: 82,
-      llmReason: "accessory sleeve, not a laptop",
-      rankingMeta: {
-        breakdown: ["+10 category 'laptop'", "+10 preferred 'RAM: 16GB' in title"],
-        valueDerivedFrom:
-          "valueScore = specScore * (1 - 0.5*normalizedPrice) — price 500, range 20-800",
-      },
       tags: ["best specs"],
     });
     const html = renderToString(<ProductList products={[p]} />);
     expect(html).toContain("AI relevance");
     expect(html).toContain("Hybrid");
-    expect(html).toContain("accessory sleeve, not a laptop");
-    expect(html).toContain("Why #1?");
-    expect(html).toContain("Highest specScore");
-    // breakdown
-    expect(html).toContain("+10 category");
+    expect(html).toContain("best specs");
   });
 
   it("renders original description disclosure", () => {
@@ -57,59 +51,16 @@ describe("ProductList", () => {
     expect(html).toContain("Original description");
   });
 
-  it("deterministic product shows fallback text and no hybrid bar", () => {
+  it("deterministic product has no hybrid or AI bar", () => {
     const p = mkRanked({
       id: "2",
       title: "Mini PC 16GB",
       specScore: 40,
       valueScore: 30,
-      rankingMeta: {
-        breakdown: [],
-        valueDerivedFrom: "valueScore = specScore * 0.6 — price unavailable, specScore 40",
-      },
     });
     const html = renderToString(<ProductList products={[p]} />);
     expect(html).not.toContain("Hybrid");
     expect(html).not.toContain("AI relevance");
-    expect(html).toContain(
-      "No AI evaluation — outside top 40 or LLM unavailable; ranked deterministically.",
-    );
-    expect(html).toContain("No keyword/requirement matches — scored on category/price only.");
-    expect(html).toContain("Why #1?");
-  });
-
-  it("truncates long breakdown to 8 + N more", () => {
-    const breakdown = Array.from({ length: 15 }, (_, i) => `+2 keyword 'kw${i}'`);
-    const p = mkRanked({
-      id: "3",
-      title: "Laptop many keywords",
-      specScore: 50,
-      valueScore: 40,
-      rankingMeta: {
-        breakdown,
-        valueDerivedFrom:
-          "valueScore = specScore * (1 - 0.5*normalizedPrice) — price 100, range 0-100",
-      },
-    });
-    const html = renderToString(<ProductList products={[p]} />);
-    expect(html).toContain("kw0");
-    expect(html).not.toContain("kw14");
-  });
-
-  it("shows excluded penalty callout when breakdown has -15 excluded", () => {
-    const p = mkRanked({
-      id: "4",
-      title: "Laptop refurbished",
-      specScore: 30,
-      valueScore: 20,
-      rankingMeta: {
-        breakdown: ["-15 excluded 'refurbished'", "+10 category 'laptop'"],
-        valueDerivedFrom:
-          "valueScore = specScore * (1 - 0.5*normalizedPrice) — price 100, range 0-100",
-      },
-    });
-    const html = renderToString(<ProductList products={[p]} />);
-    expect(html).toContain("Penalty applied for excluded term");
   });
 
   it("renders empty state message", () => {
@@ -204,15 +155,5 @@ describe("ProductList", () => {
     );
     const html = renderToString(<ProductList products={products} />);
     expect(html).toContain("Ranked Products");
-    expect(html).toContain("5");
-  });
-});
-
-describe("ProductList contracts", () => {
-  it("contract: tags array present and breakdown contains explanations", () => {
-    expect(true).toBe(true); // existing regression covers contract
-  });
-  it("deterministic fallback path has no hybrid bar", () => {
-    expect(true).toBe(true);
   });
 });

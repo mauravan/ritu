@@ -1,5 +1,5 @@
 import { fireEvent, render } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ListingDescription from "./ListingDescription";
 
 function open(container: HTMLElement) {
@@ -11,6 +11,13 @@ function open(container: HTMLElement) {
 }
 
 describe("ListingDescription", () => {
+  beforeEach(() => {
+    vi.stubGlobal("localStorage", {
+      getItem: vi.fn(() => "en"),
+      setItem: vi.fn(),
+    } as unknown as Storage);
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();

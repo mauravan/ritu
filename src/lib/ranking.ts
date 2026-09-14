@@ -180,7 +180,6 @@ export function rankProductsUnified(
     if (titleLower.includes(spec.category.toLowerCase())) score += 10;
 
     // Domain algorithm bonuses (rankingAlgorithms integrated via signalRegistry)
-    const signalBreakdown: { name: string; score: number }[] = [];
     for (const [, signal] of signalRegistry) {
       if (signal.select(spec, p)) {
         const weight = (weights[signal.name] ?? 1) as number;
@@ -189,7 +188,6 @@ export function rankProductsUnified(
           const compareValue = (compareRes.get(p.id) ?? 0) * weight;
           if (compareValue !== 0) {
             score += compareValue;
-            signalBreakdown.push({ name: signal.name, score: compareValue });
           }
         }
       }
@@ -198,7 +196,7 @@ export function rankProductsUnified(
     if (penalty !== 0) score += penalty;
 
     const specScore = Math.min(100, Math.max(1, score));
-    return { product: p, specScore, matchedRequirements, signalBreakdown };
+    return { product: p, specScore, matchedRequirements };
   });
   const withValue = scored.map((s) => {
     let valueScore: number;
@@ -269,14 +267,6 @@ export function rankProductsUnified(
     );
     const relevance = hasLLM ? llmScores?.get(w.product.id)?.relevance : undefined;
     const llmReason = hasLLM ? llmScores?.get(w.product.id)?.reason : undefined;
-    const rankingMeta = {
-      breakdown: w.matchedRequirements
-        .map((r) => r)
-        .concat(
-          w.signalBreakdown.map((sb) => `${sb.score >= 0 ? "+" : ""}${sb.score} (${sb.name})`),
-        ),
-      valueDerivedFrom: `comparative; batch_min=${valueMin} batch_max=${valueMax}; score=${Math.round(w.valueScore)}`,
-    };
     return {
       ...w.product,
       specScore: Math.round(specScore),
@@ -287,7 +277,6 @@ export function rankProductsUnified(
       relevance,
       llmReason,
       hybridScore,
-      rankingMeta: { ...rankingMeta, signalBreakdown: w.signalBreakdown },
     };
   });
 

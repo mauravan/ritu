@@ -7,15 +7,13 @@ import "./globals.css";
 import de from "@/dictionaries/de.json";
 import en from "@/dictionaries/en.json";
 import pkg from "../../package.json";
-
 const dictionaries: Record<string, typeof en> = { en, de };
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const [locale, setLocale] = useState(() => {
-    if (typeof window === "undefined") return "de";
+  const [locale, setLocale] = useState("de");
+  useEffect(() => {
     const stored = localStorage.getItem("locale");
-    return stored === "en" || stored === "de" ? stored : "de";
-  });
+    if (stored === "en" || stored === "de") setLocale(stored);
+  }, []);
 
   useEffect(() => {
     const handleChange = (e: Event) => {

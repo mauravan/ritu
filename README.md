@@ -46,3 +46,4 @@ Browser → Next.js 16 (App Router)
 - make it seem more responsive by showing the derived spec before loading results
 - let the user sort by value, spec and 
 - use an actual rerank model like cohere rerank 4
+- proximity filter

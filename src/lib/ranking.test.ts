@@ -285,9 +285,6 @@ describe("ranking", () => {
       ];
       const result = rankProductsUnified(products, gpuSpec);
       expect(result).toHaveLength(3);
-      expect(result.some((p) => p.rankingMeta?.breakdown.some((b) => b.includes("gpu")))).toBe(
-        true,
-      );
     });
 
     it("applies GPU score signal when no compare present", () => {

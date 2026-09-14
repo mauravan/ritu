@@ -4,6 +4,12 @@ import { memo, useMemo } from "react";
 import { tagExplanation } from "@/lib/ranking";
 import type { RankedProduct } from "@/lib/types";
 import ListingDescription from "./ListingDescription";
+import Tooltip from "./Tooltip";
+import useLocale from "./useLocale";
+import de from "@/dictionaries/de.json";
+import en from "@/dictionaries/en.json";
+
+const dictionaries = { de, en } as const;
 
 const tagColors: Record<string, string> = {
   "best value": "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
@@ -19,10 +25,15 @@ type DerivedItem = {
   total: number;
   hasHybrid: boolean;
   hasRelevance: boolean;
-  breakdown: string[];
-  hasExcluded: boolean;
-  displayBreakdown: string[];
 };
+
+function translateReason(r: string, dict: typeof en): string {
+  if (r.startsWith("Matches:")) return r.replace("Matches:", dict.matches_prefix);
+  if (r.startsWith("Price CHF")) return r.replace("Price CHF", dict.price_chf_prefix);
+  if (r.startsWith("Condition:")) return r.replace("Condition:", dict.condition_prefix);
+  if (r.startsWith("LLM:")) return r.replace("LLM:", dict.llm_prefix);
+  return r;
+}
 
 const ProductItem = memo(function ProductItem({
   p,
@@ -30,10 +41,8 @@ const ProductItem = memo(function ProductItem({
   total,
   hasHybrid,
   hasRelevance,
-  breakdown,
-  hasExcluded,
-  displayBreakdown,
-}: DerivedItem) {
+  dict,
+}: DerivedItem & { dict: typeof en }) {
   return (
     <div
       key={`${p.marketplace}-${p.id}`}
@@ -59,7 +68,7 @@ const ProductItem = memo(function ProductItem({
           className="h-20 w-20 rounded bg-zinc-100 dark:bg-zinc-800 items-center justify-center text-xs text-zinc-400"
           style={{ display: p.imageUrl ? "none" : "flex" }}
         >
-          No image
+          {dict.no_image}
         </div>
       </div>
       <div className="flex-1 min-w-0 space-y-2">
@@ -79,38 +88,58 @@ const ProductItem = memo(function ProductItem({
         <div className="text-sm">
           {p.marketplace === "ricardo" && (p.bidPriceChf != null || p.listedPriceChf != null) ? (
             <span className="font-semibold">
-              {p.bidPriceChf != null ? `CHF ${p.bidPriceChf} bid` : null}
+              {p.bidPriceChf != null ? `CHF ${p.bidPriceChf} ${dict.bid_word}` : null}
               {p.bidPriceChf != null && p.listedPriceChf != null ? " · " : null}
-              {p.listedPriceChf != null ? `CHF ${p.listedPriceChf} listed` : null}
+              {p.listedPriceChf != null ? `CHF ${p.listedPriceChf} ${dict.listed_word}` : null}
             </span>
           ) : p.priceChf !== null ? (
             <span className="font-semibold">CHF {p.priceChf}</span>
           ) : (
-            <span className="text-zinc-500">Price unavailable</span>
+            <span className="text-zinc-500">{dict.price_unavailable}</span>
           )}
           {p.condition && <span className="ml-2 text-xs text-zinc-500">{p.condition}</span>}
           {p.location && <span className="ml-2 text-xs text-zinc-500">{p.location}</span>}
         </div>
         <div className="flex gap-2 flex-wrap">
-          {p.tags.map((t) => (
-            <span
-              key={t}
-              className={`rounded-full px-2 py-1 text-xs font-medium ${tagColors[t] ?? "bg-zinc-100"}`}
-            >
-              {t}
-            </span>
-          ))}
+          {p.tags.map((t) => {
+            const tagBtnColors: Record<string, string> = {
+              "best value": "bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-100",
+              "best specs": "bg-purple-200 text-purple-800 dark:bg-purple-800 dark:text-purple-100",
+              cheapest: "bg-yellow-200 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100",
+              balanced: "bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-100",
+              "best overall": "bg-rose-200 text-rose-800 dark:bg-rose-800 dark:text-rose-100",
+            };
+            return (
+              <span
+                key={t}
+                className={`rounded-full px-2 py-1 text-xs font-medium ${tagColors[t] ?? "bg-zinc-100"}`}
+              >
+                {t}
+                <Tooltip
+                  titleKey="tooltip_tag_title"
+                  content={<span>{tagExplanation(t)}</span>}
+                  buttonClass={`ml-1 inline-flex items-center justify-center h-4 w-4 rounded-full text-[10px] leading-none focus:outline-none focus:ring-2 ${tagBtnColors[t] ?? "bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600"}`}
+                />
+              </span>
+            );
+          })}
         </div>
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-xs">
-            <span className="w-20">Spec</span>
+            <span className="w-24 shrink-0">
+              {dict.spec_label}
+              <Tooltip titleKey="tooltip_spec_title" textKey="tooltip_spec_text" />
+            </span>
             <div className="flex-1 h-2 rounded bg-zinc-100 dark:bg-zinc-800">
               <div className="h-2 rounded bg-purple-500" style={{ width: `${p.specScore}%` }} />
             </div>
             <span className="w-8 text-right">{p.specScore}</span>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="w-20">Value</span>
+            <span className="w-24 shrink-0">
+              {dict.value_label}
+              <Tooltip titleKey="tooltip_value_title" textKey="tooltip_value_text" />
+            </span>
             <div className="flex-1 h-2 rounded bg-zinc-100 dark:bg-zinc-800">
               <div className="h-2 rounded bg-green-500" style={{ width: `${p.valueScore}%` }} />
             </div>
@@ -121,7 +150,10 @@ const ProductItem = memo(function ProductItem({
               className="flex items-center gap-2 text-xs"
               title="LLM relevance 0-100; <30 filtered as irrelevant"
             >
-              <span className="w-20">AI relevance</span>
+              <span className="w-24 shrink-0">
+                {dict.ai_relevance_label}
+                <Tooltip titleKey="tooltip_ai_title" textKey="tooltip_ai_text" />
+              </span>
               <div className="flex-1 h-2 rounded bg-zinc-100 dark:bg-zinc-800">
                 <div className="h-2 rounded bg-amber-500" style={{ width: `${p.relevance}%` }} />
               </div>
@@ -130,7 +162,10 @@ const ProductItem = memo(function ProductItem({
           )}
           {hasHybrid && (
             <div className="flex items-center gap-2 text-xs" title="0.55×spec + 0.45×AI">
-              <span className="w-20">Hybrid</span>
+              <span className="w-24 shrink-0">
+                {dict.hybrid_label}
+                <Tooltip titleKey="tooltip_hybrid_title" textKey="tooltip_hybrid_text" />
+              </span>
               <div className="flex-1 h-2 rounded bg-zinc-100 dark:bg-zinc-800">
                 <div className="h-2 rounded bg-indigo-500" style={{ width: `${p.hybridScore}%` }} />
               </div>
@@ -150,59 +185,10 @@ const ProductItem = memo(function ProductItem({
         {p.reasons.length > 0 && (
           <ul className="list-disc list-inside text-xs text-zinc-500">
             {p.reasons.map((r) => (
-              <li key={r}>{r}</li>
+              <li key={r}>{translateReason(r, dict)}</li>
             ))}
           </ul>
         )}
-        <details className="rounded bg-zinc-100 dark:bg-zinc-800 p-2">
-          <summary className="cursor-pointer text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900">
-            {`Why #${idx + 1}?`}
-          </summary>
-          <div className="mt-2 space-y-2 text-xs text-zinc-600 dark:text-zinc-400">
-            <p>
-              {`Ranked #${idx + 1} of ${total} — sorted by ${hasHybrid ? "hybridScore (0.55·spec + 0.45·AI) then valueScore" : "valueScore then specScore"}.`}
-            </p>
-            <p>
-              Spec {p.specScore} · Value {p.valueScore}
-              {hasHybrid ? ` · Hybrid ${p.hybridScore}` : ""}
-              {hasRelevance ? ` · AI ${p.relevance}` : ""}
-            </p>
-            {p.llmReason ? (
-              <div className="rounded bg-white dark:bg-zinc-900 p-2 border dark:border-zinc-700">
-                Ranking reason: &quot;{p.llmReason}&quot;
-              </div>
-            ) : !hasRelevance ? (
-              <p>No AI evaluation — outside top 40 or LLM unavailable; ranked deterministically.</p>
-            ) : null}
-            {breakdown.length > 0 ? (
-              <ul className="list-disc list-inside space-y-0.5">
-                {displayBreakdown.map((b) => (
-                  <li key={b}>{b}</li>
-                ))}
-              </ul>
-            ) : (
-              <p>No keyword/requirement matches — scored on category/price only.</p>
-            )}
-            {p.rankingMeta?.valueDerivedFrom && (
-              <p className="text-[11px] text-zinc-500">{p.rankingMeta.valueDerivedFrom}</p>
-            )}
-            {p.tags.length > 0 && (
-              <ul className="space-y-0.5">
-                {p.tags.map((t) => (
-                  <li key={t}>
-                    {t} — {tagExplanation(t)}
-                  </li>
-                ))}
-              </ul>
-            )}
-            {hasExcluded && (
-              <p className="rounded bg-amber-50 dark:bg-amber-900/20 p-2 text-amber-800 dark:text-amber-200">
-                Penalty applied for excluded term (e.g. sleeve/hülle) — may have been filtered at
-                lower relevance.
-              </p>
-            )}
-          </div>
-        </details>
         <ListingDescription marketplace={p.marketplace} id={p.id} />
       </div>
     </div>
@@ -210,41 +196,42 @@ const ProductItem = memo(function ProductItem({
 });
 
 export default function ProductList({ products }: { products: RankedProduct[] }) {
+  const [locale] = useLocale();
+  const dict = (dictionaries[locale] || dictionaries.de) as typeof en;
+
   const total = products.length;
   const display = useMemo(() => (total === 0 ? [] : products.slice(0, 40)), [products, total]);
 
   const mapped = useMemo(() => {
     return display.map((p, idx) => {
-      const breakdown = p.rankingMeta?.breakdown ?? [];
       return {
         p,
         idx,
         total,
         hasHybrid: p.hybridScore !== undefined,
         hasRelevance: p.relevance !== undefined,
-        breakdown,
-        hasExcluded: breakdown.some((b) => b.includes("-15 excluded")),
-        displayBreakdown: breakdown.length > 12 ? breakdown.slice(0, 8) : breakdown,
       } as DerivedItem;
     });
   }, [display, total]);
 
   if (total === 0) {
-    return (
-      <p className="text-sm text-zinc-500">No products found — try a different description.</p>
-    );
+    return <p className="text-sm text-zinc-500">{dict.no_products_found_message}</p>;
   }
 
   return (
     <div className="space-y-4">
       <h3 className="text-sm font-semibold">
-        Ranked Products ({display.length}
+        {dict.ranked_products_heading} ({display.length}
         {total > 40 ? ` of ${total}` : ""})
       </h3>
-      {total > 40 && <p className="text-xs text-zinc-500">Showing top 40 of {total}</p>}
+      {total > 40 && (
+        <p className="text-xs text-zinc-500">
+          {dict.showing_top_40.replace("{total}", String(total))}
+        </p>
+      )}
       <div className="grid gap-4">
         {mapped.map((item) => (
-          <ProductItem key={`${item.p.marketplace}-${item.p.id}`} {...item} />
+          <ProductItem key={`${item.p.marketplace}-${item.p.id}`} {...item} dict={dict} />
         ))}
       </div>
     </div>

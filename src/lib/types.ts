@@ -32,10 +32,6 @@ export type RankedProduct = RawProduct & {
   relevance?: number;
   llmReason?: string;
   hybridScore?: number;
-  rankingMeta?: {
-    breakdown: string[];
-    valueDerivedFrom: string;
-  };
 };
 
 export type Tag =
