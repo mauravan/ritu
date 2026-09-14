@@ -97,10 +97,30 @@ export async function searchMarketplaces(
 
   // Handle individual rejections (aggregate behavior unchanged; rejected promises excluded from results)
   for (const rej of ricardoSettled.filter((r) => r.status === "rejected")) {
-    logger.error("[RITU][SEARCH] ricardo promise rejected:", (rej as PromiseRejectedResult).reason);
+    const reason = (rej as PromiseRejectedResult<any>).reason;
+    logger.error("[RITU][SEARCH] ricardo promise rejected:", {
+      reason,
+      reasonType: reason === null ? "null" : typeof reason,
+      message:
+        reason && typeof reason === "object"
+          ? String((reason as any)?.message ?? "")
+          : String(reason ?? ""),
+      stack: reason && typeof reason === "object" ? String((reason as any)?.stack ?? "") : "",
+      stringified: String(reason ?? ""),
+    });
   }
   for (const rej of tuttiSettled.filter((r) => r.status === "rejected")) {
-    logger.error("[RITU][SEARCH] tutti promise rejected:", (rej as PromiseRejectedResult).reason);
+    const reason = (rej as PromiseRejectedResult<any>).reason;
+    logger.error("[RITU][SEARCH] tutti promise rejected:", {
+      reason,
+      reasonType: reason === null ? "null" : typeof reason,
+      message:
+        reason && typeof reason === "object"
+          ? String((reason as any)?.message ?? "")
+          : String(reason ?? ""),
+      stack: reason && typeof reason === "object" ? String((reason as any)?.stack ?? "") : "",
+      stringified: String(reason ?? ""),
+    });
   }
   const ricardoFlat = ricardoGroups.flat();
   const tuttiFlat = tuttiGroups.flat();
