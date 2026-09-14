@@ -96,9 +96,13 @@ export async function searchMarketplaces(
   const tuttiGroups = tuttiSettled.filter(isFulfilled).map((r) => r.value);
 
   // Handle individual rejections (aggregate behavior unchanged; rejected promises excluded from results)
-  for (const rej of ricardoSettled.filter((r) => r.status === "rejected")) {
-    const reason = (rej as PromiseRejectedResult<any>).reason;
-    logger.error("[RITU][SEARCH] ricardo promise rejected:", {
+  for (const rej of ricardoSettled.filter(
+    (r): r is PromiseSettledResult<any> & { status: "rejected"; reason: any } =>
+      r.status === "rejected",
+  )) {
+    const reason = (rej as { reason: any }).reason;
+    logger.error({
+      msg: "[RITU][SEARCH] ricardo promise rejected:",
       reason,
       reasonType: reason === null ? "null" : typeof reason,
       message:
@@ -109,9 +113,13 @@ export async function searchMarketplaces(
       stringified: String(reason ?? ""),
     });
   }
-  for (const rej of tuttiSettled.filter((r) => r.status === "rejected")) {
-    const reason = (rej as PromiseRejectedResult<any>).reason;
-    logger.error("[RITU][SEARCH] tutti promise rejected:", {
+  for (const rej of tuttiSettled.filter(
+    (r): r is PromiseSettledResult<any> & { status: "rejected"; reason: any } =>
+      r.status === "rejected",
+  )) {
+    const reason = (rej as { reason: any }).reason;
+    logger.error({
+      msg: "[RITU][SEARCH] tutti promise rejected:",
       reason,
       reasonType: reason === null ? "null" : typeof reason,
       message:
