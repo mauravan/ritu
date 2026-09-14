@@ -1,7 +1,7 @@
 import { createOpenAI } from "@ai-sdk/openai";
-import { logger } from "../logger";
 import { generateObject } from "ai";
 import { z } from "zod";
+import { logger } from "../logger";
 import type { DerivedSpec, RawProduct } from "../types";
 
 export type RerankResult = {

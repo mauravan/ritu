@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
 import { Info } from "lucide-react";
-import useLocale from "./useLocale";
+import { useCallback, useRef, useState } from "react";
 import de from "@/dictionaries/de.json";
 import en from "@/dictionaries/en.json";
+import useLocale from "./useLocale";
 
 const dictionaries = { de, en } as const;
 

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { logger } from "@/lib/logger";
 import { sanitizeSearchQueries } from "@/lib/accessoryGuard";
 import { SpecDerivationError, ValidationError } from "@/lib/errors";
 import { askClarifyingQuestion } from "@/lib/llm/askClarifying";
 import { deriveSpecs } from "@/lib/llm/deriveSpecs";
 import { runOptionalRerank } from "@/lib/llm/rerank";
+import { logger } from "@/lib/logger";
 import { parseSearchRequest } from "@/lib/parseSearchRequest";
 import { rankProductsUnified } from "@/lib/ranking";
 import {

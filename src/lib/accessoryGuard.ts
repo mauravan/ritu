@@ -1,5 +1,5 @@
-import type { DerivedSpec } from "./types";
 import { logger } from "./logger";
+import type { DerivedSpec } from "./types";
 
 const ACCESSORY_TERMS: Record<string, true> = {
   hülle: true,

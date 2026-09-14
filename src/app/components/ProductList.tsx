@@ -1,13 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import { memo, useMemo } from "react";
+import de from "@/dictionaries/de.json";
+import en from "@/dictionaries/en.json";
 import { tagExplanation } from "@/lib/ranking";
 import type { RankedProduct } from "@/lib/types";
 import ListingDescription from "./ListingDescription";
 import Tooltip from "./Tooltip";
 import useLocale from "./useLocale";
-import de from "@/dictionaries/de.json";
-import en from "@/dictionaries/en.json";
 
 const dictionaries = { de, en } as const;
 
@@ -38,7 +39,7 @@ function translateReason(r: string, dict: typeof en): string {
 const ProductItem = memo(function ProductItem({
   p,
   idx,
-  total,
+  _total,
   hasHybrid,
   hasRelevance,
   dict,
@@ -51,13 +52,15 @@ const ProductItem = memo(function ProductItem({
     >
       <div className="shrink-0">
         {p.imageUrl ? (
-          <img
+          <Image
             src={p.imageUrl}
             alt={p.title}
+            width={80}
+            height={80}
             className="h-20 w-20 object-cover rounded bg-zinc-100"
             loading="lazy"
             referrerPolicy="no-referrer"
-            onError={(e) => {
+            onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
               (e.currentTarget as HTMLImageElement).style.display = "none";
               const sib = e.currentTarget.nextElementSibling as HTMLElement | null;
               if (sib) sib.style.display = "flex";

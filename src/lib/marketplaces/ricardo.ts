@@ -1,6 +1,7 @@
 // Ricardo adapter — now backed by ricardo-api library
-import { logger } from "../logger";
+
 import { RicardoClient } from "ricardo-api";
+import { logger } from "../logger";
 import type { RawProduct } from "../types";
 
 function slugify(title: string): string {

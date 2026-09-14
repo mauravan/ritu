@@ -1,7 +1,7 @@
 import { generateObject } from "ai";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { DerivedSpec, RawProduct } from "../types";
 import { logger } from "../logger";
+import type { DerivedSpec, RawProduct } from "../types";
 import { getRerankConfig, rerankWithLLM } from "./rerank";
 
 vi.mock("ai", () => ({

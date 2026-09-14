@@ -1,7 +1,7 @@
-import { logger } from "../logger";
 import { createOpenAI } from "@ai-sdk/openai";
 import { generateObject, generateText } from "ai";
 import { z } from "zod";
+import { logger } from "../logger";
 
 const ClarifyingQuestionSchema = z.object({
   question: z.string().describe("One concise clarifying question"),

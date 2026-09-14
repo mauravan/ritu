@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { logger } from "@/lib/logger";
 import { RicardoClient } from "ricardo-api";
 import { TuttiClient } from "tutti-api";
 import { extractListingDescription, formatListingDescription } from "@/lib/listingDescription";
+import { logger } from "@/lib/logger";
 import { withRetry, withRicardoLimit, withTuttiLimit } from "@/lib/marketplaces/rateLimit";
 
 export async function GET(req: Request): Promise<Response> {

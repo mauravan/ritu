@@ -422,7 +422,11 @@ describe("ranking", () => {
         ["1", { id: "1", relevance: 5, relevant: false, reason: "fails", fulfillsRequired: false }],
         ["2", { id: "2", relevance: 95, relevant: true, reason: "match", fulfillsRequired: true }],
       ]);
-      const result = rankProductsUnified(products as any, spec, llmScores);
+      const result = rankProductsUnified(
+        products as unknown as Parameters<typeof rankProductsUnified>[0],
+        spec,
+        llmScores,
+      );
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe("2");
     });

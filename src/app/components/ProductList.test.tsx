@@ -1,8 +1,8 @@
 import { renderToString } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { RankedProduct } from "@/lib/types";
 import ProductList from "./ProductList";
-import { vi } from "vitest";
+
 vi.mock("./useLocale", () => ({
   default: () => ["en" as const, () => {}],
 }));

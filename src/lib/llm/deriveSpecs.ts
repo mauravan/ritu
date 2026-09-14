@@ -1,7 +1,7 @@
-import { logger } from "../logger";
 import { createOpenAI } from "@ai-sdk/openai";
 import { generateObject, generateText } from "ai";
 import { ValidationError } from "../errors";
+import { logger } from "../logger";
 import { DerivedSpecSchema } from "../schemas";
 import type { DerivedSpec } from "../types";
 import { SYSTEM_PROMPT } from "./prompt";

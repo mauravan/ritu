@@ -33,7 +33,7 @@ export function parseSingleRequirementValue(
   if (atLeastMatch) {
     return {
       operator: ">=",
-      numericValue: parseNumeric(atLeastMatch[1]!),
+      numericValue: parseNumeric(atLeastMatch[1] ?? ""),
       unit: atLeastMatch[2] || undefined,
     };
   }
@@ -42,7 +42,7 @@ export function parseSingleRequirementValue(
   if (maxMatch) {
     return {
       operator: "<=",
-      numericValue: parseNumeric(maxMatch[1]!),
+      numericValue: parseNumeric(maxMatch[1] ?? ""),
       unit: maxMatch[2] || undefined,
     };
   }
@@ -51,7 +51,7 @@ export function parseSingleRequirementValue(
   if (minMatch) {
     return {
       operator: ">=",
-      numericValue: parseNumeric(minMatch[1]!),
+      numericValue: parseNumeric(minMatch[1] ?? ""),
       unit: minMatch[2] || undefined,
     };
   }
@@ -60,7 +60,7 @@ export function parseSingleRequirementValue(
     /(?:^|\s)([\d.,]+)(?:\+)?(?:\s*([a-zA-Z%]+))?(?:\+)?(?:$|\s)/,
   );
   if (greaterEqualMatch) {
-    const numStr = greaterEqualMatch[1]!;
+    const numStr = greaterEqualMatch[1] ?? "";
     const restUnit = greaterEqualMatch[2] || undefined;
     const plusMatch = value.match(/([\d.,]+\s*[a-zA-Z%]*)(\+)/) || value.match(/([\d.,]+)(\+)/);
     const hasPlusPrecise = !!plusMatch;
@@ -75,7 +75,7 @@ export function parseSingleRequirementValue(
   if (numericMatch) {
     return {
       operator: "=",
-      numericValue: parseNumeric(numericMatch[1]!),
+      numericValue: parseNumeric(numericMatch[1] ?? ""),
       unit: numericMatch[2] || extractUnit(value),
     };
   }

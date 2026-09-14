@@ -1,13 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
+import de from "@/dictionaries/de.json";
+import en from "@/dictionaries/en.json";
 import type { DerivedSpec, Platform, SearchResult } from "@/lib/types";
 import ProductList from "./ProductList";
 import QueryList from "./QueryList";
 import SearchForm from "./SearchForm";
 import SpecPanel from "./SpecPanel";
-import de from "@/dictionaries/de.json";
-import en from "@/dictionaries/en.json";
 import useLocale from "./useLocale";
 
 const dictionaries = { de, en } as const;

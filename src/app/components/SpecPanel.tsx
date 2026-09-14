@@ -1,8 +1,8 @@
 "use client";
 
-import type { DerivedSpec } from "@/lib/types";
 import de from "@/dictionaries/de.json";
 import en from "@/dictionaries/en.json";
+import type { DerivedSpec } from "@/lib/types";
 import useLocale from "./useLocale";
 
 const dictionaries = { de, en } as const;

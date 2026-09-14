@@ -7,6 +7,7 @@ import "./globals.css";
 import de from "@/dictionaries/de.json";
 import en from "@/dictionaries/en.json";
 import pkg from "../../package.json";
+
 const dictionaries: Record<string, typeof en> = { en, de };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const [locale, setLocale] = useState("de");
