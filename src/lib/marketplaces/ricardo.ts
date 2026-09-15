@@ -1,5 +1,6 @@
 // Ricardo adapter — now backed by ricardo-api library
 
+import { getProxyFetch } from "../proxyFetch";
 import { RicardoClient } from "ricardo-api";
 import { logger } from "../logger";
 import type { RawProduct } from "../types";
@@ -20,7 +21,7 @@ export async function searchRicardo(query: string, limit = 20): Promise<RawProdu
   logger.info(`[RITU][RICARDO] search query="${query}" limit=${limit}`);
   // ricardo-api uses mobile endpoint /m/search with AWS SigV4 (x-authorization);
   // web session cookies are not used by this endpoint and cause 403 from WAF.
-  const client = new RicardoClient();
+  const client = new RicardoClient({ fetch: getProxyFetch() });
   const _result = await client.search(query).fetch();
   interface RicardoListing {
     listingID?: string | number;

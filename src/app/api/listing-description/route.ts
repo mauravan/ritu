@@ -4,6 +4,7 @@ import { TuttiClient } from "tutti-api";
 import { extractListingDescription, formatListingDescription } from "@/lib/listingDescription";
 import { logger } from "@/lib/logger";
 import { withRetry, withRicardoLimit, withTuttiLimit } from "@/lib/marketplaces/rateLimit";
+import { getProxyFetch } from "@/lib/proxyFetch";
 
 export async function GET(req: Request): Promise<Response> {
   const url = new URL(req.url);
@@ -16,7 +17,7 @@ export async function GET(req: Request): Promise<Response> {
     let detail: unknown;
     if (marketplace === "ricardo") {
       detail = await withRicardoLimit(() =>
-        withRetry(() => new RicardoClient().listings.get(id), "ricardo"),
+        withRetry(() => new RicardoClient({ fetch: getProxyFetch() }).listings.get(id), "ricardo"),
       );
     } else {
       detail = await withTuttiLimit(() =>
