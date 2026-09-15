@@ -29,22 +29,30 @@ describe("proxyFetch", () => {
   });
 
   it("loads proxies and logs count when PROXY_LIST set", () => {
-    process.env.PROXY_LIST = "proxy1:8080:pass1\nproxy2:8081:pass2";
+    process.env.PROXY_LIST = "proxy1:8080:user1:pass1,proxy2:8081:user2:pass2";
     const result = getProxyFetch();
     expect(result).not.toBe(global.fetch);
     expect(logger.info).toHaveBeenCalledWith("[RITU][PROXY] loaded 2 proxies");
   });
 
-  it("ignores empty lines in PROXY_LIST", () => {
-    process.env.PROXY_LIST = "\nproxy1:8080:pass1\n\n";
+  it("ignores empty entries in comma-separated PROXY_LIST", () => {
+    process.env.PROXY_LIST = ",host:8080:user:pw,,";
     const result = getProxyFetch();
     expect(result).not.toBe(global.fetch);
     expect(logger.info).toHaveBeenCalledWith("[RITU][PROXY] loaded 1 proxies");
   });
+
   it("rotates through proxies on successive calls", () => {
-    process.env.PROXY_LIST = "host:8080:pw";
+    process.env.PROXY_LIST = "host:8080:user:pw";
     getProxyFetch();
     getProxyFetch();
     expect(logger.info).toHaveBeenCalledTimes(2);
+  });
+
+  it("parses 4-part proxy with username and password", () => {
+    process.env.PROXY_LIST = "host:8080:myuser:mypass";
+    const result = getProxyFetch();
+    expect(result).not.toBe(global.fetch);
+    expect(logger.info).toHaveBeenCalledWith("[RITU][PROXY] loaded 1 proxies");
   });
 });

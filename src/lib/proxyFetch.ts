@@ -2,24 +2,27 @@ import { logger } from "./logger";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import https from "node:https";
 
-function parseProxies(): Array<{ host: string; port: string; password: string }> {
+function parseProxies(): Array<{ host: string; port: string; username: string; password: string }> {
   const raw = process.env.PROXY_LIST ?? "";
   return raw
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0)
-    .map((line) => {
-      const parts = line.split(":");
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+    .map((entry) => {
+      const parts = entry.split(":");
       const host = parts[0] ?? "";
       const port = parts[1] ?? "";
-      const password = parts.slice(2).join(":");
+      const username = parts[2] ?? "";
+      const password = parts.slice(3).join(":");
       if (!host || !port) return null;
-      return { host, port, password };
+      return { host, port, username, password };
     })
-    .filter((p): p is { host: string; port: string; password: string } => p !== null);
+    .filter(
+      (p): p is { host: string; port: string; username: string; password: string } => p !== null,
+    );
 }
 
-let current = 0;
+const currentCounter = { value: 0 };
 
 export function getProxyFetch(): typeof fetch {
   const proxies = parseProxies();
@@ -27,11 +30,14 @@ export function getProxyFetch(): typeof fetch {
   if (proxies.length === 0) {
     return global.fetch;
   }
-  const proxy = proxies[current % proxies.length];
+  const idx = currentCounter.value % proxies.length;
+  currentCounter.value += 1;
+  const proxy = proxies[idx];
   if (!proxy) return global.fetch;
-  current += 1;
-  const proxyUrl = `http://${encodeURIComponent(proxy.password)}@${proxy.host}:${proxy.port}`;
-  const agent = new HttpsProxyAgent(proxyUrl);
+  const auth = proxy.username
+    ? `${encodeURIComponent(proxy.username)}:${encodeURIComponent(proxy.password)}@`
+    : `${encodeURIComponent(proxy.password)}@`;
+  const agent = new HttpsProxyAgent(`http://${auth}${proxy.host}:${proxy.port}`);
 
   return async function proxyFetch(
     input: RequestInfo | URL,
