@@ -97,22 +97,24 @@ export async function searchMarketplaces(
 
   // Handle individual rejections (aggregate behavior unchanged; rejected promises excluded from results)
   for (const rej of ricardoSettled.filter(
-    (r): r is PromiseSettledResult<any> & { status: "rejected"; reason: any } =>
+    (r): r is PromiseSettledResult<unknown> & { status: "rejected"; reason: unknown } =>
       r.status === "rejected",
   )) {
-    const reason = (rej as { reason: any }).reason;
+    const reason = (rej as { reason: unknown }).reason;
     const maxBody = 800;
     const truncate = (v: string | undefined): string => {
       if (v === undefined || v === null) return "";
       const s = String(v);
-      return s.length <= maxBody ? s : s.slice(0, maxBody) + ` ... [truncated, ${s.length} chars]`;
+      return s.length <= maxBody ? s : `${s.slice(0, maxBody)} ... [truncated, ${s.length} chars]`;
     };
     const reasonObj =
       reason && typeof reason === "object" ? (reason as Record<string, unknown>) : {};
     const stripData = (v: string): string =>
       String(v).replace(/data:[^"]*"/g, '[base64-stripped]"');
     const bodyStr =
-      reason && typeof reason === "object" ? stripData(String((reason as any)?.body ?? "")) : "";
+      reason && typeof reason === "object"
+        ? stripData(String((reason as Record<string, unknown>)?.body ?? ""))
+        : "";
     logger.error({
       msg: "[RITU][SEARCH] ricardo promise rejected:",
       reasonType: reason === null ? "null" : typeof reason,
@@ -126,19 +128,22 @@ export async function searchMarketplaces(
     });
   }
   for (const rej of tuttiSettled.filter(
-    (r): r is PromiseSettledResult<any> & { status: "rejected"; reason: any } =>
+    (r): r is PromiseSettledResult<unknown> & { status: "rejected"; reason: unknown } =>
       r.status === "rejected",
   )) {
-    const reason = (rej as { reason: any }).reason;
+    const reason = (rej as { reason: unknown }).reason;
     logger.error({
       msg: "[RITU][SEARCH] tutti promise rejected:",
       reason,
       reasonType: reason === null ? "null" : typeof reason,
       message:
         reason && typeof reason === "object"
-          ? String((reason as any)?.message ?? "")
+          ? String((reason as Record<string, unknown>)?.message ?? "")
           : String(reason ?? ""),
-      stack: reason && typeof reason === "object" ? String((reason as any)?.stack ?? "") : "",
+      stack:
+        reason && typeof reason === "object"
+          ? String((reason as Record<string, unknown>)?.stack ?? "")
+          : "",
       stringified: String(reason ?? ""),
     });
   }

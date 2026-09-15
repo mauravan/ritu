@@ -27,7 +27,8 @@ export function getProxyFetch(): typeof fetch {
   if (proxies.length === 0) {
     return global.fetch;
   }
-  const proxy = proxies[current % proxies.length]!;
+  const proxy = proxies[current % proxies.length];
+  if (!proxy) return global.fetch;
   current += 1;
   const proxyUrl = `http://${encodeURIComponent(proxy.password)}@${proxy.host}:${proxy.port}`;
   const agent = new HttpsProxyAgent(proxyUrl);
