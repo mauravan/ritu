@@ -101,16 +101,23 @@ export async function searchMarketplaces(
       r.status === "rejected",
   )) {
     const reason = (rej as { reason: any }).reason;
+    const maxBody = 800;
+    const truncate = (v: string | undefined): string => {
+      if (v === undefined || v === null) return "";
+      const s = String(v);
+      return s.length <= maxBody ? s : s.slice(0, maxBody) + ` ... [truncated, ${s.length} chars]`;
+    };
+    const reasonObj = reason && typeof reason === "object" ? reason as Record<string, unknown> : {};
+    const stripData = (v: string): string => String(v).replace(/data:[^"]*"/g, '[base64-stripped]"');
+    const bodyStr = reason && typeof reason === "object" ? stripData(String((reason as any)?.body ?? "")) : "";
     logger.error({
       msg: "[RITU][SEARCH] ricardo promise rejected:",
-      reason,
       reasonType: reason === null ? "null" : typeof reason,
-      message:
-        reason && typeof reason === "object"
-          ? String((reason as any)?.message ?? "")
-          : String(reason ?? ""),
-      stack: reason && typeof reason === "object" ? String((reason as any)?.stack ?? "") : "",
-      stringified: String(reason ?? ""),
+      status: (reasonObj.status as number | undefined) ?? null,
+      statusText: (reasonObj.statusText as string | undefined) ?? null,
+      bodyLength: bodyStr.length,
+      bodySnippet: bodyStr.slice(0, 300) + (bodyStr.length > 300 ? " ... [base64 blob stripped, truncated]" : ""),
+      message: truncate(String(reasonObj.message ?? "")),
     });
   }
   for (const rej of tuttiSettled.filter(
