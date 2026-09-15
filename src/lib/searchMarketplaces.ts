@@ -107,16 +107,21 @@ export async function searchMarketplaces(
       const s = String(v);
       return s.length <= maxBody ? s : s.slice(0, maxBody) + ` ... [truncated, ${s.length} chars]`;
     };
-    const reasonObj = reason && typeof reason === "object" ? reason as Record<string, unknown> : {};
-    const stripData = (v: string): string => String(v).replace(/data:[^"]*"/g, '[base64-stripped]"');
-    const bodyStr = reason && typeof reason === "object" ? stripData(String((reason as any)?.body ?? "")) : "";
+    const reasonObj =
+      reason && typeof reason === "object" ? (reason as Record<string, unknown>) : {};
+    const stripData = (v: string): string =>
+      String(v).replace(/data:[^"]*"/g, '[base64-stripped]"');
+    const bodyStr =
+      reason && typeof reason === "object" ? stripData(String((reason as any)?.body ?? "")) : "";
     logger.error({
       msg: "[RITU][SEARCH] ricardo promise rejected:",
       reasonType: reason === null ? "null" : typeof reason,
       status: (reasonObj.status as number | undefined) ?? null,
       statusText: (reasonObj.statusText as string | undefined) ?? null,
       bodyLength: bodyStr.length,
-      bodySnippet: bodyStr.slice(0, 300) + (bodyStr.length > 300 ? " ... [base64 blob stripped, truncated]" : ""),
+      bodySnippet:
+        bodyStr.slice(0, 300) +
+        (bodyStr.length > 300 ? " ... [base64 blob stripped, truncated]" : ""),
       message: truncate(String(reasonObj.message ?? "")),
     });
   }
