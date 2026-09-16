@@ -1,6 +1,6 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { getProxyFetch } from "./proxyFetch";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { logger } from "./logger";
+import { getProxyFetch } from "./proxyFetch";
 
 vi.mock("./logger", () => ({
   logger: {

@@ -1,8 +1,8 @@
 // Ricardo adapter — now backed by ricardo-api library
 
-import { getProxyFetch } from "../proxyFetch";
 import { RicardoClient } from "ricardo-api";
 import { logger } from "../logger";
+import { getProxyFetch } from "../proxyFetch";
 import type { RawProduct } from "../types";
 
 function slugify(title: string): string {

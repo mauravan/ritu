@@ -1,6 +1,6 @@
-import { logger } from "./logger";
-import { HttpsProxyAgent } from "https-proxy-agent";
 import https from "node:https";
+import { HttpsProxyAgent } from "https-proxy-agent";
+import { logger } from "./logger";
 
 function parseProxies(): Array<{ host: string; port: string; username: string; password: string }> {
   const raw = process.env.PROXY_LIST ?? "";
