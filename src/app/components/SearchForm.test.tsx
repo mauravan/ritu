@@ -56,15 +56,6 @@ describe("SearchForm regression - clarification reset", () => {
   });
 });
 
-describe("SearchForm contract assertions", () => {
-  it("form state buttons present after reset and input value preserved", () => {
-    expect(true).toBe(true); // regression exists; new contracts added by plan
-  });
-  it("isLoading prop disables submit", () => {
-    expect(true).toBe(true);
-  });
-});
-
 describe("SearchForm edge cases", () => {
   beforeEach(() => {
     window.localStorage.setItem("locale", "en");

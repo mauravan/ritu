@@ -38,24 +38,26 @@ export default function ListingDescription({
   };
 
   return (
-    <details className="rounded bg-zinc-100 dark:bg-zinc-800 p-2" onToggle={handleToggle}>
-      <summary className="cursor-pointer text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200">
-        {dict.original_description}
+    <details
+      className="rounded-[2px] border border-border bg-canvas p-2 group"
+      onToggle={handleToggle}
+    >
+      <summary className="cursor-pointer text-xs font-medium text-text-secondary hover:text-text-primary select-none flex items-center gap-1.5">
+        <span className="text-interface-accent transition-transform group-open:rotate-90 select-none inline-block">
+          ▶
+        </span>
+        <span>{dict.original_description}</span>
       </summary>
       {status === "idle" ? null : status === "loading" ? (
-        <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{dict.loading_description}</p>
+        <p className="mt-2 text-xs text-text-secondary">{dict.loading_description}</p>
       ) : status === "error" ? (
-        <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-          {dict.could_not_load_description}
-        </p>
+        <p className="mt-2 text-xs text-error-text">{dict.could_not_load_description}</p>
       ) : text ? (
-        <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap break-words text-[11px] leading-relaxed font-mono text-zinc-600 dark:text-zinc-400">
+        <pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap break-words text-[11px] leading-relaxed font-mono text-text-primary bg-panel p-2 rounded-[2px] border border-border">
           {text}
         </pre>
       ) : (
-        <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-          {dict.no_description_available}
-        </p>
+        <p className="mt-2 text-xs text-text-secondary">{dict.no_description_available}</p>
       )}
     </details>
   );

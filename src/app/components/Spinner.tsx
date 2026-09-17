@@ -1,7 +1,7 @@
 export default function Spinner({ size = 20 }: { size?: number }) {
   return (
     <svg
-      className="animate-spin"
+      className="animate-spin inline-block shrink-0"
       width={size}
       height={size}
       viewBox="0 0 24 24"

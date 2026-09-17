@@ -14,27 +14,30 @@ export default function QueryList({ queries }: { queries: MarketplaceQuery[] }) 
   const ricardo = useMemo(() => queries.filter((q) => q.marketplace === "ricardo"), [queries]);
   const tutti = useMemo(() => queries.filter((q) => q.marketplace === "tutti"), [queries]);
 
-  const renderGroup = (label: string, items: MarketplaceQuery[], color: string) => (
+  const renderGroup = (label: string, items: MarketplaceQuery[]) => (
     <div
-      className="space-y-2"
-      style={{ contentVisibility: "auto", containIntrinsicSize: "0 80px" }}
+      className="space-y-1.5"
+      style={{ contentVisibility: "auto", containIntrinsicSize: "0 60px" }}
     >
-      <div className="flex items-center gap-2">
-        <span className={`rounded-full px-2 py-1 text-xs font-medium ${color}`}>{label}</span>
-        <span className="text-xs text-zinc-500">
+      <div className="flex items-center justify-between text-xs text-text-secondary">
+        <span className="font-medium text-text-primary">&gt; {label}</span>
+        <span className="text-[11px]">
           {dict.queries_count.replace("{count}", String(items.length))}
         </span>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {items.map((q) => (
           <a
             key={`${q.marketplace}-${q.query}`}
             href={q.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 rounded-full border bg-white dark:bg-zinc-900 dark:border-zinc-700 px-3 py-1 text-xs hover:bg-zinc-50 dark:hover:bg-zinc-800"
+            className="bracket-tag inline-flex items-center gap-1 rounded-[2px] border border-border bg-panel px-2 py-0.5 text-xs text-text-primary hover:bg-surface-subtle transition-colors"
           >
-            {q.query} ↗
+            <span>{q.query}</span>
+            <span className="text-text-secondary text-[10px]" aria-hidden="true">
+              ↗
+            </span>
           </a>
         ))}
       </div>
@@ -42,18 +45,14 @@ export default function QueryList({ queries }: { queries: MarketplaceQuery[] }) 
   );
 
   return (
-    <div className="rounded-lg border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-6 space-y-4">
-      <h3 className="text-sm font-semibold">{dict.marketplace_queries_heading}</h3>
-      {renderGroup(
-        "ricardo",
-        ricardo,
-        "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
-      )}
-      {renderGroup(
-        "tutti",
-        tutti,
-        "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100",
-      )}
+    <div className="border border-border bg-canvas rounded-[2px] p-3 space-y-3">
+      <div className="border-b border-border pb-1.5">
+        <h3 className="text-xs font-semibold text-text-primary">
+          {dict.marketplace_queries_heading}
+        </h3>
+      </div>
+      {renderGroup("ricardo", ricardo)}
+      {renderGroup("tutti", tutti)}
     </div>
   );
 }

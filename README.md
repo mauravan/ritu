@@ -28,6 +28,7 @@ Browser → Next.js 16 (App Router)
 - `src/lib/ranking.ts` — pure specScore/valueScore + tags
 - `src/app/api/search` — orchestrator (only place composing all)
 
+See [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) for UI design tokens, typography, layout rules, and instructions on adding new search filters.
 ## Known limitations
 
 - No DB — stateless per-request

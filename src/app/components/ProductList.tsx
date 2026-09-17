@@ -12,12 +12,20 @@ import useLocale from "./useLocale";
 
 const dictionaries = { de, en } as const;
 
-const tagColors: Record<string, string> = {
-  "best value": "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100",
-  "best specs": "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100",
-  cheapest: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100",
-  balanced: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100",
-  "best overall": "bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-100",
+/*
+Plan mapping:
+Map `best specs` to `score-spec`, `best value` to `score-value`,
+`cheapest` and `best condition` to trade amber, `balanced` to `score-hybrid`,
+and `best overall` to `score-overall`.
+Render tags as square bracketed labels using the mapped text color and a 1px border; do not use filled pills.
+*/
+const tagClassMap: Record<string, string> = {
+  "best specs": "text-score-spec border-score-spec",
+  "best value": "text-score-value border-score-value",
+  cheapest: "text-marketplace-accent border-marketplace-accent",
+  "best condition": "text-marketplace-accent border-marketplace-accent",
+  balanced: "text-score-hybrid border-score-hybrid",
+  "best overall": "text-score-overall border-score-overall",
 };
 
 type DerivedItem = {
@@ -44,20 +52,23 @@ const ProductItem = memo(function ProductItem({
   hasRelevance,
   dict,
 }: DerivedItem & { dict: typeof en }) {
+  const zeroIndex = String(idx + 1).padStart(3, "0");
+  const sourceLabel = String(dict.source_label ?? "source");
+
   return (
-    <div
+    <article
       key={`${p.marketplace}-${p.id}`}
-      className="rounded-lg border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-4 flex gap-4"
-      style={{ contentVisibility: "auto", containIntrinsicSize: "0 160px" }}
+      className="p-3 sm:p-4 flex flex-col sm:flex-row gap-3 sm:gap-4 border-b border-border last:border-b-0"
+      style={{ contentVisibility: "auto", containIntrinsicSize: "0 180px" }}
     >
       <div className="shrink-0">
         {p.imageUrl ? (
           <Image
             src={p.imageUrl}
             alt={p.title}
-            width={80}
-            height={80}
-            className="h-20 w-20 object-cover rounded bg-zinc-100"
+            width={128}
+            height={128}
+            className="h-24 w-24 md:h-32 md:w-32 object-cover rounded-[2px] bg-canvas border border-border"
             loading="lazy"
             referrerPolicy="no-referrer"
             onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -68,133 +79,168 @@ const ProductItem = memo(function ProductItem({
           />
         ) : null}
         <div
-          className="h-20 w-20 rounded bg-zinc-100 dark:bg-zinc-800 items-center justify-center text-xs text-zinc-400"
+          className="h-24 w-24 md:h-32 md:w-32 rounded-[2px] bg-canvas border border-border items-center justify-center text-xs text-text-secondary"
           style={{ display: p.imageUrl ? "none" : "flex" }}
         >
           {dict.no_image}
         </div>
       </div>
+
       <div className="flex-1 min-w-0 space-y-2">
         <div className="flex items-start justify-between gap-2">
           <a
             href={p.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium text-sm hover:underline line-clamp-2"
+            className="font-medium text-xs sm:text-sm hover:underline line-clamp-2 text-text-primary"
           >
-            #{idx + 1} {p.title}
+            <span className="text-text-secondary font-mono mr-1">[{zeroIndex}]</span>
+            {p.title}
           </a>
-          <span className="shrink-0 text-xs rounded-full bg-zinc-100 dark:bg-zinc-800 px-2 py-1">
-            {p.marketplace}
+          <span className="shrink-0 text-xs rounded-[2px] border border-border bg-canvas px-1.5 py-0.5 text-text-secondary">
+            {sourceLabel}: <span className="text-text-primary font-medium">{p.marketplace}</span>
           </span>
         </div>
-        <div className="text-sm">
+
+        <div className="text-xs sm:text-sm flex flex-wrap items-baseline gap-2">
           {p.marketplace === "ricardo" && (p.bidPriceChf != null || p.listedPriceChf != null) ? (
-            <span className="font-semibold">
+            <span className="font-semibold text-marketplace-accent text-base sm:text-lg">
               {p.bidPriceChf != null ? `CHF ${p.bidPriceChf} ${dict.bid_word}` : null}
               {p.bidPriceChf != null && p.listedPriceChf != null ? " · " : null}
               {p.listedPriceChf != null ? `CHF ${p.listedPriceChf} ${dict.listed_word}` : null}
             </span>
           ) : p.priceChf !== null ? (
-            <span className="font-semibold">CHF {p.priceChf}</span>
+            <span className="font-semibold text-marketplace-accent text-base sm:text-lg">
+              CHF {p.priceChf}
+            </span>
           ) : (
-            <span className="text-zinc-500">{dict.price_unavailable}</span>
+            <span className="text-text-secondary">{dict.price_unavailable}</span>
           )}
-          {p.condition && <span className="ml-2 text-xs text-zinc-500">{p.condition}</span>}
-          {p.location && <span className="ml-2 text-xs text-zinc-500">{p.location}</span>}
+          {p.condition && (
+            <span className="text-xs text-text-secondary">
+              {dict.condition_prefix} {p.condition}
+            </span>
+          )}
+          {p.location && <span className="text-xs text-text-secondary">{p.location}</span>}
         </div>
-        <div className="flex gap-2 flex-wrap">
-          {p.tags.map((t) => {
-            const tagBtnColors: Record<string, string> = {
-              "best value": "bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-100",
-              "best specs": "bg-purple-200 text-purple-800 dark:bg-purple-800 dark:text-purple-100",
-              cheapest: "bg-yellow-200 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100",
-              balanced: "bg-blue-200 text-blue-800 dark:bg-blue-800 dark:text-blue-100",
-              "best overall": "bg-rose-200 text-rose-800 dark:bg-rose-800 dark:text-rose-100",
-            };
-            return (
-              <span
-                key={t}
-                className={`rounded-full px-2 py-1 text-xs font-medium ${tagColors[t] ?? "bg-zinc-100"}`}
-              >
-                {t}
-                <Tooltip
-                  titleKey="tooltip_tag_title"
-                  content={<span>{tagExplanation(t)}</span>}
-                  buttonClass={`ml-1 inline-flex items-center justify-center h-4 w-4 rounded-full text-[10px] leading-none focus:outline-none focus:ring-2 ${tagBtnColors[t] ?? "bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600"}`}
-                />
-              </span>
-            );
-          })}
-        </div>
-        <div className="space-y-1">
+
+        {p.tags.length > 0 && (
+          <div className="flex gap-1.5 flex-wrap">
+            {p.tags.map((t) => {
+              const customClass = tagClassMap[t] ?? "text-text-secondary border-border";
+              return (
+                <span
+                  key={t}
+                  className={`bracket-tag inline-flex items-center px-1.5 py-0.5 text-[11px] rounded-[2px] border bg-canvas ${customClass}`}
+                >
+                  {t}
+                  <Tooltip
+                    titleKey="tooltip_tag_title"
+                    content={<span>{tagExplanation(t)}</span>}
+                    buttonClass="ml-1 inline-flex items-center justify-center text-[10px] text-text-secondary hover:text-text-primary"
+                  />
+                </span>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="space-y-1.5 pt-1">
           <div className="flex items-center gap-2 text-xs">
-            <span className="w-24 shrink-0">
+            <span className="w-24 shrink-0 text-text-secondary">
               {dict.spec_label}
               <Tooltip titleKey="tooltip_spec_title" textKey="tooltip_spec_text" />
             </span>
-            <div className="flex-1 h-2 rounded bg-zinc-100 dark:bg-zinc-800">
-              <div className="h-2 rounded bg-purple-500" style={{ width: `${p.specScore}%` }} />
+            <div className="flex-1 h-2 rounded-[2px] bg-canvas border border-border overflow-hidden">
+              <div
+                className="h-full bg-score-spec score-track-ticks"
+                style={{ width: `${p.specScore}%` }}
+              />
             </div>
-            <span className="w-8 text-right">{p.specScore}</span>
+            <span className="w-8 text-right font-mono text-text-primary">{p.specScore}</span>
           </div>
+
           <div className="flex items-center gap-2 text-xs">
-            <span className="w-24 shrink-0">
+            <span className="w-24 shrink-0 text-text-secondary">
               {dict.value_label}
               <Tooltip titleKey="tooltip_value_title" textKey="tooltip_value_text" />
             </span>
-            <div className="flex-1 h-2 rounded bg-zinc-100 dark:bg-zinc-800">
-              <div className="h-2 rounded bg-green-500" style={{ width: `${p.valueScore}%` }} />
+            <div className="flex-1 h-2 rounded-[2px] bg-canvas border border-border overflow-hidden">
+              <div
+                className="h-full bg-score-value score-track-ticks"
+                style={{ width: `${p.valueScore}%` }}
+              />
             </div>
-            <span className="w-8 text-right">{p.valueScore}</span>
+            <span className="w-8 text-right font-mono text-text-primary">{p.valueScore}</span>
           </div>
+
           {hasRelevance && (
             <div
               className="flex items-center gap-2 text-xs"
               title="LLM relevance 0-100; <30 filtered as irrelevant"
             >
-              <span className="w-24 shrink-0">
+              <span className="w-24 shrink-0 text-text-secondary">
                 {dict.ai_relevance_label}
                 <Tooltip titleKey="tooltip_ai_title" textKey="tooltip_ai_text" />
               </span>
-              <div className="flex-1 h-2 rounded bg-zinc-100 dark:bg-zinc-800">
-                <div className="h-2 rounded bg-amber-500" style={{ width: `${p.relevance}%` }} />
+              <div className="flex-1 h-2 rounded-[2px] bg-canvas border border-border overflow-hidden">
+                <div
+                  className="h-full bg-score-ai score-track-ticks"
+                  style={{ width: `${p.relevance}%` }}
+                />
               </div>
-              <span className="w-8 text-right">{p.relevance}</span>
+              <span className="w-8 text-right font-mono text-text-primary">{p.relevance}</span>
             </div>
           )}
+
           {hasHybrid && (
             <div className="flex items-center gap-2 text-xs" title="0.55×spec + 0.45×AI">
-              <span className="w-24 shrink-0">
+              <span className="w-24 shrink-0 text-text-secondary">
                 {dict.hybrid_label}
                 <Tooltip titleKey="tooltip_hybrid_title" textKey="tooltip_hybrid_text" />
               </span>
-              <div className="flex-1 h-2 rounded bg-zinc-100 dark:bg-zinc-800">
-                <div className="h-2 rounded bg-indigo-500" style={{ width: `${p.hybridScore}%` }} />
+              <div className="flex-1 h-2 rounded-[2px] bg-canvas border border-border overflow-hidden">
+                <div
+                  className="h-full bg-score-hybrid score-track-ticks"
+                  style={{ width: `${p.hybridScore}%` }}
+                />
               </div>
-              <span className="w-8 text-right">{p.hybridScore}</span>
+              <span className="w-8 text-right font-mono text-text-primary">{p.hybridScore}</span>
             </div>
           )}
         </div>
+
         {p.matchedRequirements.length > 0 && (
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1 pt-1">
             {p.matchedRequirements.map((m) => (
-              <span key={m} className="rounded bg-zinc-100 dark:bg-zinc-800 px-2 py-1 text-xs">
+              <span
+                key={m}
+                className="bracket-tag rounded-[2px] bg-canvas border border-border px-1.5 py-0.5 text-[11px] text-text-secondary"
+              >
                 {m}
               </span>
             ))}
           </div>
         )}
+
         {p.reasons.length > 0 && (
-          <ul className="list-disc list-inside text-xs text-zinc-500">
+          <ul className="text-xs text-text-secondary space-y-0.5 pt-1">
             {p.reasons.map((r) => (
-              <li key={r}>{translateReason(r, dict)}</li>
+              <li key={r} className="flex items-start gap-1.5">
+                <span className="text-interface-accent select-none" aria-hidden="true">
+                  &gt;
+                </span>
+                <span>{translateReason(r, dict)}</span>
+              </li>
             ))}
           </ul>
         )}
-        <ListingDescription marketplace={p.marketplace} id={p.id} />
+
+        <div className="pt-1">
+          <ListingDescription marketplace={p.marketplace} id={p.id} />
+        </div>
       </div>
-    </div>
+    </article>
   );
 });
 
@@ -218,21 +264,34 @@ export default function ProductList({ products }: { products: RankedProduct[] })
   }, [display, total]);
 
   if (total === 0) {
-    return <p className="text-sm text-zinc-500">{dict.no_products_found_message}</p>;
+    return <p className="text-xs text-text-secondary">{dict.no_products_found_message}</p>;
   }
 
+  const resultsPaneLabel = String(dict.pane_results ?? "results");
+  const countLabel =
+    total > 40
+      ? `01–${String(display.length).padStart(2, "0")} / ${total}`
+      : `01–${String(display.length).padStart(2, "0")}`;
+
   return (
-    <div className="space-y-4">
-      <h3 className="text-sm font-semibold">
-        {dict.ranked_products_heading} ({display.length}
-        {total > 40 ? ` of ${total}` : ""})
-      </h3>
-      {total > 40 && (
-        <p className="text-xs text-zinc-500">
-          {dict.showing_top_40.replace("{total}", String(total))}
-        </p>
-      )}
-      <div className="grid gap-4">
+    <div className="border border-border bg-panel rounded-[2px] overflow-hidden">
+      <div className="p-3 border-b border-border flex items-center justify-between text-xs font-medium text-text-secondary bg-panel">
+        <span className="pane-legend">
+          {resultsPaneLabel} {countLabel}
+        </span>
+        <div className="text-right">
+          <span className="text-[11px] block text-text-primary">
+            {dict.ranked_products_heading}
+          </span>
+          {total > 40 && (
+            <span className="text-[10px] text-text-secondary block">
+              {dict.showing_top_40.replace("{total}", String(total))}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div>
         {mapped.map((item) => (
           <ProductItem key={`${item.p.marketplace}-${item.p.id}`} {...item} dict={dict} />
         ))}

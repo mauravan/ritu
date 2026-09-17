@@ -1,26 +1,165 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@layer theme, base, components, utilities;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer theme {
+  :root,
+  [data-theme="light"] {
+    color-scheme: light;
+    --canvas: #E6EBEF;
+    --panel: #F8FAFB;
+    --text-primary: #182229;
+    --text-secondary: #5B6972;
+    --interface-accent: #006B83;
+    --marketplace-accent: #9A4F00;
+    --border: #A8B5BC;
+    --surface-subtle: #D9E1E5;
+    --selection: #006B83;
+    --on-selection: #FFFFFF;
+    --focus: #C96A08;
+    --error-surface: #F7DFDF;
+    --error-text: #9F2633;
+    --notice-surface: #F4E8D3;
+    --notice-text: #754400;
+    --score-spec: #6046A8;
+    --score-value: #26734E;
+    --score-ai: #9A4F00;
+    --score-hybrid: #006B83;
+    --score-overall: #A53855;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  [data-theme="dark"] {
+    color-scheme: dark;
+    --canvas: #071118;
+    --panel: #0D1922;
+    --text-primary: #DDE8ED;
+    --text-secondary: #8496A0;
+    --interface-accent: #59C7D9;
+    --marketplace-accent: #FFB454;
+    --border: #29404C;
+    --surface-subtle: #122631;
+    --selection: #59C7D9;
+    --on-selection: #071118;
+    --focus: #FFB454;
+    --error-surface: #351B24;
+    --error-text: #FF8F9D;
+    --notice-surface: #302515;
+    --notice-text: #FFD08A;
+    --score-spec: #B5A0FF;
+    --score-value: #66D19E;
+    --score-ai: #FFB454;
+    --score-hybrid: #59C7D9;
+    --score-overall: #FF7E9D;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-panel: var(--panel);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-interface-accent: var(--interface-accent);
+  --color-marketplace-accent: var(--marketplace-accent);
+  --color-border: var(--border);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-selection: var(--selection);
+  --color-on-selection: var(--on-selection);
+  --color-focus: var(--focus);
+  --color-error-surface: var(--error-surface);
+  --color-error-text: var(--error-text);
+  --color-notice-surface: var(--notice-surface);
+  --color-notice-text: var(--notice-text);
+  --color-score-spec: var(--score-spec);
+  --color-score-value: var(--score-value);
+  --color-score-ai: var(--score-ai);
+  --color-score-hybrid: var(--score-hybrid);
+  --color-score-overall: var(--score-overall);
+
+  --font-mono: var(--font-martian-mono), ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+    box-sizing: border-box;
+  }
+
+  body {
+    background-color: var(--canvas);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Theme toggle glyph visibility */
+[data-theme="light"] .theme-glyph-dark {
+  display: none;
+}
+[data-theme="light"] .theme-glyph-light {
+  display: inline-block;
+}
+[data-theme="dark"] .theme-glyph-light {
+  display: none;
+}
+[data-theme="dark"] .theme-glyph-dark {
+  display: inline-block;
+}
+
+/* Score meter functional tick mask: 8px visual ticks */
+.score-track-ticks {
+  mask-image: repeating-linear-gradient(
+    to right,
+    black 0px,
+    black 6px,
+    transparent 6px,
+    transparent 8px
+  );
+  -webkit-mask-image: repeating-linear-gradient(
+    to right,
+    black 0px,
+    black 6px,
+    transparent 6px,
+    transparent 8px
+  );
+}
+
+/* Bracket pseudo-element helper so brackets don't pollute accessible names */
+.bracket-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.bracket-tag::before {
+  content: "[";
+  margin-right: 1px;
+}
+.bracket-tag::after {
+  content: "]";
+  margin-left: 1px;
+}
+
+.pane-legend::before {
+  content: "[";
+}
+.pane-legend::after {
+  content: "]";
 }

@@ -53,5 +53,14 @@
   "matches_prefix": "Übereinstimmungen:",
   "price_chf_prefix": "Preis CHF",
   "condition_prefix": "Zustand:",
-  "llm_prefix": "LLM:"
+  "llm_prefix": "LLM:",
+  "theme_toggle_label": "Farbschema wechseln",
+  "hero_title": "Ricardo und Tutti gleichzeitig durchsuchen.",
+  "hero_description": "Beschreibe, was du brauchst. RITU vergleicht Angebote nach Eignung und Preis-Leistung.",
+  "search_input_label": "Wonach suchst du?",
+  "pane_search": "suche",
+  "pane_filters": "filter",
+  "pane_results": "ergebnisse",
+  "pane_search_trace": "suchprotokoll",
+  "source_label": "quelle"
 }

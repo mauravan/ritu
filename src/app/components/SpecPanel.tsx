@@ -10,38 +10,52 @@ const dictionaries = { de, en } as const;
 export default function SpecPanel({ spec }: { spec: DerivedSpec }) {
   const [locale] = useLocale();
   const dict = (dictionaries[locale] || dictionaries.de) as typeof en;
+
   return (
-    <div className="rounded-lg border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-6 space-y-4">
-      <h2 className="text-lg font-semibold">{spec.category}</h2>
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">{spec.summary}</p>
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium">{dict.requirements_heading}</h3>
-        <div className="flex flex-wrap gap-2">
+    <div className="border border-border bg-canvas rounded-[2px] p-3 space-y-3">
+      <div className="border-b border-border pb-2">
+        <h2 className="text-xs sm:text-sm font-semibold text-text-primary tracking-tight">
+          &gt; {spec.category}
+        </h2>
+        <p className="text-xs text-text-secondary mt-1 leading-relaxed">{spec.summary}</p>
+      </div>
+
+      <div className="space-y-1.5">
+        <h3 className="text-[11px] font-medium text-text-secondary">
+          {dict.requirements_heading}:
+        </h3>
+        <div className="flex flex-wrap gap-1.5">
           {spec.requirements.map((r) => (
             <span
               key={`${r.key}-${r.value}`}
-              className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${
+              className={`bracket-tag inline-flex items-center gap-1 rounded-[2px] border px-1.5 py-0.5 text-[11px] ${
                 r.importance === "required"
-                  ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
-                  : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                  ? "border-error-text text-error-text bg-error-surface"
+                  : "border-border text-text-secondary bg-panel"
               }`}
             >
-              {r.key}: {r.value} <span className="opacity-60">{r.importance}</span>
+              <span>{r.key}:</span>
+              <span className="text-text-primary font-medium">{r.value}</span>
+              <span className="opacity-70 text-[10px]">({r.importance})</span>
             </span>
           ))}
         </div>
       </div>
+
       {spec.excludedTerms.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {spec.excludedTerms.map((t) => (
-            <span
-              key={t}
-              title={dict.excluded_terms_title}
-              className="rounded-full bg-zinc-100 dark:bg-zinc-800 px-3 py-1 text-xs text-zinc-500"
-            >
-              -{t}
-            </span>
-          ))}
+        <div className="space-y-1 pt-1 border-t border-border">
+          <span className="text-[10px] text-text-secondary block">excluded:</span>
+          <div className="flex flex-wrap gap-1.5">
+            {spec.excludedTerms.map((t) => (
+              <span
+                key={t}
+                title={dict.excluded_terms_title}
+                className="bracket-tag rounded-[2px] border border-border bg-panel px-1.5 py-0.5 text-[11px] text-text-secondary"
+              >
+                -{t}
+              </span>
+            ))}
+          </div>
         </div>
       )}
     </div>

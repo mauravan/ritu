@@ -3,20 +3,31 @@ export default function SearchInput({
   setQuery,
   disabled,
   placeholder,
+  label,
 }: {
   query: string;
   setQuery: (q: string) => void;
   disabled: boolean;
   placeholder: string;
+  label: string;
 }) {
   return (
-    <textarea
-      value={query}
-      onChange={(e) => setQuery(e.target.value)}
-      disabled={disabled}
-      placeholder={placeholder}
-      rows={3}
-      className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-sm dark:bg-zinc-800 dark:border-zinc-700 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white"
-    />
+    <div className="relative flex items-start gap-2 bg-panel p-2.5 border border-border rounded-[2px] focus-within:border-focus">
+      <span
+        className="text-interface-accent select-none font-bold text-sm leading-6"
+        aria-hidden="true"
+      >
+        &gt;
+      </span>
+      <textarea
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        disabled={disabled}
+        placeholder={placeholder}
+        aria-label={label}
+        rows={3}
+        className="w-full bg-transparent text-sm text-text-primary placeholder:text-text-secondary focus:outline-none resize-none leading-6 disabled:opacity-50"
+      />
+    </div>
   );
 }

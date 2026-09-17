@@ -157,7 +157,7 @@ export default function SearchView() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <SearchForm onSearch={handleSearch} isLoading={isLoading} error={error} />
 
       {(derivedSpec || result) && (
@@ -165,42 +165,65 @@ export default function SearchView() {
           {derivedSpec && !result && <SpecPanel spec={derivedSpec} />}
 
           {result && (
-            <>
-              <div className="rounded-lg border bg-white dark:bg-zinc-900 dark:border-zinc-800 p-4">
-                <p className="text-sm">
-                  <span className="text-zinc-500">{dict.query_label}</span>{" "}
-                  <span className="italic">&ldquo;{result.input}&rdquo;</span>
-                </p>
+            <div className="grid grid-cols-1 lg:grid-cols-[304px_1fr] gap-6 items-start">
+              {/* Left on desktop, below products in DOM/mobile if needed or handled via CSS grid order */}
+              {/* Plan: "Use CSS grid placement so desktop trace appears left while DOM/mobile order keeps products first." */}
+              <div className="lg:col-start-2 lg:row-start-1">
+                <ProductList products={result.products} />
+                {result.products.length === 0 && (
+                  <div className="mt-4 p-3 border border-border bg-panel rounded-[2px]">
+                    <p className="text-xs text-marketplace-accent">
+                      {dict.no_products_found_message}
+                    </p>
+                  </div>
+                )}
               </div>
 
-              {(result.clarifyingQuestion || result.clarifyingAnswer) && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:bg-amber-900/20 dark:border-amber-800">
-                  <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                    {dict.clarifying_context_heading}
-                  </p>
-                  {result.clarifyingQuestion && (
-                    <p className="text-sm text-zinc-700 dark:text-zinc-200 mt-1">
-                      {dict.clarifying_context_q.replace("{question}", result.clarifyingQuestion)}
+              <div className="lg:col-start-1 lg:row-start-1 space-y-4">
+                <div className="border border-border bg-panel rounded-[2px] p-3 space-y-3">
+                  <div className="text-xs font-medium text-text-secondary">
+                    <span className="pane-legend">{dict.pane_search_trace}</span>
+                  </div>
+
+                  <div className="border border-border rounded-[2px] p-2 bg-canvas">
+                    <p className="text-xs">
+                      <span className="text-text-secondary">{dict.query_label}</span>{" "}
+                      <span className="text-text-primary font-medium">
+                        &ldquo;{result.input}&rdquo;
+                      </span>
                     </p>
+                  </div>
+
+                  {(result.clarifyingQuestion || result.clarifyingAnswer) && (
+                    <div className="rounded-[2px] border border-border bg-canvas p-2 text-xs space-y-1">
+                      <p className="font-semibold text-text-primary">
+                        {dict.clarifying_context_heading}
+                      </p>
+                      {result.clarifyingQuestion && (
+                        <p className="text-text-secondary">
+                          {dict.clarifying_context_q.replace(
+                            "{question}",
+                            result.clarifyingQuestion,
+                          )}
+                        </p>
+                      )}
+                      {result.clarifyingAnswer && (
+                        <p className="text-text-primary">
+                          {dict.clarifying_context_answer.replace(
+                            "{answer}",
+                            result.clarifyingAnswer,
+                          )}
+                        </p>
+                      )}
+                    </div>
                   )}
-                  {result.clarifyingAnswer && (
-                    <p className="text-sm text-zinc-700 dark:text-zinc-200 mt-1">
-                      {dict.clarifying_context_answer.replace("{answer}", result.clarifyingAnswer)}
-                    </p>
-                  )}
+
+                  <SpecPanel spec={result.derivedSpec} />
+
+                  <QueryList queries={result.queries} />
                 </div>
-              )}
-
-              <SpecPanel spec={result.derivedSpec} />
-
-              <QueryList queries={result.queries} />
-
-              <ProductList products={result.products} />
-
-              {result.products.length === 0 && (
-                <p className="text-xs text-amber-600">{dict.no_products_found_message}</p>
-              )}
-            </>
+              </div>
+            </div>
           )}
         </div>
       )}

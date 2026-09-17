@@ -53,5 +53,14 @@
   "matches_prefix": "Matches:",
   "price_chf_prefix": "Price CHF",
   "condition_prefix": "Condition:",
-  "llm_prefix": "LLM:"
+  "llm_prefix": "LLM:",
+  "theme_toggle_label": "Switch color theme",
+  "hero_title": "Search Ricardo and Tutti at once.",
+  "hero_description": "Describe what you need. RITU compares listings by fit and value.",
+  "search_input_label": "What are you looking for?",
+  "pane_search": "search",
+  "pane_filters": "filters",
+  "pane_results": "results",
+  "pane_search_trace": "search trace",
+  "source_label": "source"
 }
