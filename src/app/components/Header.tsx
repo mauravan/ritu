@@ -1,8 +1,8 @@
 "use client";
 
-import ThemeToggle from "./ThemeToggle";
 import de from "@/dictionaries/de.json";
 import en from "@/dictionaries/en.json";
+import ThemeToggle from "./ThemeToggle";
 
 const dictionaries: Record<string, typeof en> = { en, de };
 
