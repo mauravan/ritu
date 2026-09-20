@@ -1,8 +1,11 @@
 import type { RawProduct } from "../types";
 
 export interface MarketplaceAdapter {
-  readonly name: "ricardo" | "tutti";
-  search(query: string, limit?: number): Promise<RawProduct[]>;
+  search(
+    query: string,
+    limit?: number,
+    opts?: { zipCode?: string; radius?: number },
+  ): Promise<RawProduct[]>;
   buildUrl(query: string): string;
 }
 

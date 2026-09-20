@@ -193,7 +193,9 @@ describe("rerank", () => {
 
     it("warns and returns empty map when LLM returns zero results", async () => {
       const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
-      vi.mocked(generateObject).mockResolvedValue({ object: { results: [] } } as never);
+      vi.mocked(generateObject).mockResolvedValue({
+        object: { results: [] },
+      } as never);
       const result = await rerankWithLLM([mkProduct("1", "laptop")], spec);
       expect(result.size).toBe(0);
       expect(warn).toHaveBeenCalledWith(expect.stringContaining("returned 0/1"));
@@ -236,7 +238,9 @@ describe("rerank", () => {
       const products = [mkProduct("1", "a"), mkProduct("2", "b"), mkProduct("3", "c")];
       await rerankWithLLM(products, spec);
 
-      const call = vi.mocked(generateObject).mock.calls[0][0] as { prompt: string };
+      const call = vi.mocked(generateObject).mock.calls[0][0] as {
+        prompt: string;
+      };
       expect(call.prompt).not.toContain('id="3"');
       expect(call.prompt).toContain('id="1"');
       expect(call.prompt).toContain('id="2"');
@@ -250,7 +254,9 @@ describe("rerank", () => {
       } as never);
       const noReqSpec: DerivedSpec = { ...spec, requirements: [] };
       await rerankWithLLM([mkProduct("1", "laptop")], noReqSpec);
-      const call = vi.mocked(generateObject).mock.calls[0][0] as { prompt: string };
+      const call = vi.mocked(generateObject).mock.calls[0][0] as {
+        prompt: string;
+      };
       expect(call.prompt).toContain("Requirements: none");
     });
     it("handles error without stack", async () => {
@@ -277,7 +283,13 @@ describe("rerank", () => {
         object: {
           results: [
             { id: "1", relevance: 95, relevant: true, reason: "ok" },
-            { id: "2", relevance: 5, relevant: false, reason: "fails", fulfillsRequired: false },
+            {
+              id: "2",
+              relevance: 5,
+              relevant: false,
+              reason: "fails",
+              fulfillsRequired: false,
+            },
           ],
         },
       } as never);

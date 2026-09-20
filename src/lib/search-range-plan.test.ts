@@ -132,7 +132,13 @@ describe("numericFilter", () => {
     const spec: DerivedSpec = {
       category: "laptop",
       summary: "test",
-      requirements: [{ key: "cpu", value: "Intel i5 or AMD Ryzen 5", importance: "required" }],
+      requirements: [
+        {
+          key: "cpu",
+          value: "Intel i5 or AMD Ryzen 5",
+          importance: "required",
+        },
+      ],
       searchQueries: ["laptop"],
       excludedTerms: [],
     };
@@ -198,7 +204,13 @@ describe("compound marketplace queries", () => {
     const spec: DerivedSpec = {
       category: "laptop",
       summary: "test",
-      requirements: [{ key: "cpu", value: "Intel i5 or AMD Ryzen 5", importance: "required" }],
+      requirements: [
+        {
+          key: "cpu",
+          value: "Intel i5 or AMD Ryzen 5",
+          importance: "required",
+        },
+      ],
       searchQueries: ["laptop"],
       excludedTerms: [],
     };

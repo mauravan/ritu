@@ -60,7 +60,7 @@ export default function ThemeToggle({ label }: { label: string }) {
       <span className="theme-glyph-light select-none text-sm font-semibold" aria-hidden="true">
         ☾
       </span>
-      <span className="theme-glyph-dark select-none text-base font-semibold" aria-hidden="true">
+      <span className="theme-glyph-dark select-none text-xl font-semibold" aria-hidden="true">
         ☼
       </span>
     </button>

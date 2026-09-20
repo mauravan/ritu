@@ -72,4 +72,9 @@ export const SearchRequestSchema = z.object({
   clarifyingQuestion: z.string().optional(),
   originalQuery: z.string().optional(),
   derivedSpec: DerivedSpecSchema.optional(),
+  zipCode: z
+    .string()
+    .regex(/^\d{4}$/)
+    .optional(),
+  radius: z.number().positive().optional(),
 });

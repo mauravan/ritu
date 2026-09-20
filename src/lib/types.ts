@@ -1,12 +1,20 @@
 export type DerivedSpec = {
   category: string;
   summary: string;
-  requirements: { key: string; value: string; importance: "required" | "preferred" }[];
+  requirements: {
+    key: string;
+    value: string;
+    importance: "required" | "preferred";
+  }[];
   searchQueries: string[];
   excludedTerms: string[];
 };
 
-export type MarketplaceQuery = { marketplace: "ricardo" | "tutti"; query: string; url: string };
+export type MarketplaceQuery = {
+  marketplace: "ricardo" | "tutti";
+  query: string;
+  url: string;
+};
 
 export type RawProduct = {
   id: string;

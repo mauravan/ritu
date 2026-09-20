@@ -67,13 +67,26 @@ export function listingToRawProduct(listing: Listing): RawProduct {
   };
 }
 
-export async function searchTuttiViaApi(query: string, limit: number): Promise<RawProduct[]> {
+export async function searchTuttiViaApi(
+  query: string,
+  limit: number,
+  opts?: { zipCode?: string; radius?: number },
+): Promise<RawProduct[]> {
   logger.info(`[RITU][TUTTI-API] search query="${query}" limit=${limit}`);
   try {
     const client = new TuttiClient();
 
     const result = await Promise.race([
-      client.search(query).fetch(),
+      opts?.zipCode
+        ? client
+            .search(query)
+            .location({
+              localityID: `geo-zipcode-${opts.zipCode}`,
+              name: `geo-zipcode-${opts.zipCode}`,
+            })
+            .radius(opts.radius ?? 20)
+            .fetch()
+        : client.search(query).fetch(),
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("tutti-api timeout 8000ms")), 8000),
       ),

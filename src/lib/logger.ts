@@ -8,15 +8,49 @@ const baseConfig = {
   base: { tag: "RITU" },
 };
 
-const pinoInstance = pretty
-  ? pino({ ...baseConfig, transport: { target: "pino-pretty" } })
-  : pino(baseConfig);
+/** Singleton — ensures single logger instance across modules.
+ * Participants: Client (callers import `Logger.getInstance()`), Singleton (`Logger` class), Logger Instance (internal `pino` instance).
+ */
+export class Logger {
+  private static instance: Logger;
+  private pinoInstance: pino.Logger;
 
+  private constructor() {
+    this.pinoInstance = pretty
+      ? pino({ ...baseConfig, transport: { target: "pino-pretty" } })
+      : pino(baseConfig);
+  }
+
+  public static getInstance(): Logger {
+    if (!Logger.instance) {
+      Logger.instance = new Logger();
+    }
+    return Logger.instance;
+  }
+
+  debug(...args: Parameters<pino.Logger["debug"]>): void {
+    this.pinoInstance.debug(...args);
+  }
+
+  info(...args: Parameters<pino.Logger["info"]>): void {
+    this.pinoInstance.info(...args);
+  }
+
+  warn(...args: Parameters<pino.Logger["warn"]>): void {
+    this.pinoInstance.warn(...args);
+  }
+
+  error(...args: Parameters<pino.Logger["error"]>): void {
+    this.pinoInstance.error(...args);
+  }
+}
+
+const instance = Logger.getInstance();
 export const logger = {
-  debug: pinoInstance.debug.bind(pinoInstance),
-  info: pinoInstance.info.bind(pinoInstance),
-  warn: pinoInstance.warn.bind(pinoInstance),
-  error: pinoInstance.error.bind(pinoInstance),
+  debug: instance.debug.bind(instance),
+  info: instance.info.bind(instance),
+  warn: instance.warn.bind(instance),
+  error: instance.error.bind(instance),
 };
 
-export default pinoInstance;
+export default Logger.getInstance();

@@ -24,11 +24,15 @@ const validSpec = {
 describe("deriveSpecs", () => {
   describe("tryParseJsonFromText", () => {
     it("parses direct JSON", () => {
-      expect(tryParseJsonFromText('{"key": "value"}')).toEqual({ key: "value" });
+      expect(tryParseJsonFromText('{"key": "value"}')).toEqual({
+        key: "value",
+      });
     });
 
     it("parses JSON with whitespace", () => {
-      expect(tryParseJsonFromText('  {"key": "value"}  ')).toEqual({ key: "value" });
+      expect(tryParseJsonFromText('  {"key": "value"}  ')).toEqual({
+        key: "value",
+      });
     });
 
     it("parses JSON from markdown code block", () => {
@@ -38,7 +42,9 @@ describe("deriveSpecs", () => {
     });
 
     it("parses JSON from markdown code block without language", () => {
-      expect(tryParseJsonFromText('```\n{"key": "value"}\n```')).toEqual({ key: "value" });
+      expect(tryParseJsonFromText('```\n{"key": "value"}\n```')).toEqual({
+        key: "value",
+      });
     });
 
     it("extracts JSON from text with first/last brace", () => {
@@ -95,7 +101,9 @@ describe("deriveSpecs", () => {
     });
 
     it("returns object from generateObject on first attempt", async () => {
-      vi.mocked(generateObject).mockResolvedValue({ object: validSpec } as never);
+      vi.mocked(generateObject).mockResolvedValue({
+        object: validSpec,
+      } as never);
       const result = await deriveSpecs("laptop for school");
       expect(result).toEqual(validSpec);
       expect(generateObject).toHaveBeenCalledTimes(1);
@@ -108,7 +116,9 @@ describe("deriveSpecs", () => {
 
     it("falls back to generateText when generateObject throws generic error", async () => {
       vi.mocked(generateObject).mockRejectedValue(new Error("model does not support structured"));
-      vi.mocked(generateText).mockResolvedValue({ text: JSON.stringify(validSpec) } as never);
+      vi.mocked(generateText).mockResolvedValue({
+        text: JSON.stringify(validSpec),
+      } as never);
       const result = await deriveSpecs("laptop for school");
       expect(result).toEqual(validSpec);
       expect(generateText).toHaveBeenCalledTimes(1);
@@ -134,7 +144,9 @@ describe("deriveSpecs", () => {
 
     it("throws fallback error when generateText returns unparseable text", async () => {
       vi.mocked(generateObject).mockRejectedValue(new Error("no structured"));
-      vi.mocked(generateText).mockResolvedValue({ text: "not json at all" } as never);
+      vi.mocked(generateText).mockResolvedValue({
+        text: "not json at all",
+      } as never);
       await expect(deriveSpecs("laptop for school")).rejects.toThrow("All LLM attempts failed");
     });
 
@@ -158,35 +170,47 @@ describe("deriveSpecs", () => {
     });
 
     it("includes clarifyingAnswer in prompt", async () => {
-      vi.mocked(generateObject).mockResolvedValue({ object: validSpec } as never);
+      vi.mocked(generateObject).mockResolvedValue({
+        object: validSpec,
+      } as never);
       await deriveSpecs("laptop for school", "budget 800 CHF");
       expect(generateObject).toHaveBeenCalledWith(
         expect.objectContaining({
           prompt: expect.stringContaining("Original request: laptop for school"),
         }),
       );
-      const call = vi.mocked(generateObject).mock.calls[0][0] as { prompt: string };
+      const call = vi.mocked(generateObject).mock.calls[0][0] as {
+        prompt: string;
+      };
       expect(call.prompt).toContain("Clarifying context from user: budget 800 CHF");
     });
 
     it("truncates input to 500 chars", async () => {
       const longInput = "a".repeat(600);
-      vi.mocked(generateObject).mockResolvedValue({ object: validSpec } as never);
+      vi.mocked(generateObject).mockResolvedValue({
+        object: validSpec,
+      } as never);
       await deriveSpecs(longInput);
-      const call = vi.mocked(generateObject).mock.calls[0][0] as { prompt: string };
+      const call = vi.mocked(generateObject).mock.calls[0][0] as {
+        prompt: string;
+      };
       expect(call.prompt.length).toBeLessThanOrEqual(500);
     });
 
     it("uses env baseURL and model when set", async () => {
       vi.stubEnv("LLM_BASE_URL", "https://custom.example.com");
       vi.stubEnv("LLM_MODEL", "custom-model");
-      vi.mocked(generateObject).mockResolvedValue({ object: validSpec } as never);
+      vi.mocked(generateObject).mockResolvedValue({
+        object: validSpec,
+      } as never);
       await deriveSpecs("laptop");
       expect(createOpenAI).toHaveBeenCalledWith({
         apiKey: "test-key",
         baseURL: "https://custom.example.com",
       });
-      const call = vi.mocked(generateObject).mock.calls[0][0] as { model: string };
+      const call = vi.mocked(generateObject).mock.calls[0][0] as {
+        model: string;
+      };
       expect(call.model).toBe("mock-openai:custom-model");
     });
   });

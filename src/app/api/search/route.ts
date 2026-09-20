@@ -18,8 +18,16 @@ export async function POST(req: Request): Promise<Response> {
   const parsed = await parseSearchRequest(req);
   if (!parsed.ok) return parsed.errorResponse;
   const { derivedSpec: providedSpec, ...rest } = parsed.data;
-  const { query, platform, askQuestion, clarifyingAnswer, clarifyingQuestion, originalQuery } =
-    rest;
+  const {
+    query,
+    platform,
+    askQuestion,
+    clarifyingAnswer,
+    clarifyingQuestion,
+    originalQuery,
+    zipCode,
+    radius,
+  } = rest;
   if (askQuestion === true) {
     try {
       const question = await askClarifyingQuestion(query);
@@ -68,7 +76,7 @@ export async function POST(req: Request): Promise<Response> {
   );
 
   // Start independent fetch early; await late
-  const rawPromise = searchMarketplaces(searchQueries, platform);
+  const rawPromise = searchMarketplaces(searchQueries, platform, { zipCode, radius });
 
   const raw = await rawPromise;
 

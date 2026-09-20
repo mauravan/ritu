@@ -49,15 +49,36 @@ function extractGpuNumber(text: string): number | null {
  * `signalRegistry.set(name, signal)`. Default weight is 0; update weights
  * in `route.ts` or pass `weights` to `rankProductsUnified` to activate.
  */
-export interface RankingSignal {
-  name: string;
-  select(spec: DerivedSpec, product: RawProduct): boolean;
-  compare(spec: DerivedSpec, products: RawProduct[]): Map<string, number>;
+/** Singleton — ensures single signal registry instance across ranking modules. */
+export class SignalRegistry {
+  private static instance: SignalRegistry;
+  private registry: Map<string, RankingSignal>;
+
+  private constructor() {
+    this.registry = new Map<string, RankingSignal>();
+  }
+
+  public static getInstance(): SignalRegistry {
+    if (!SignalRegistry.instance) {
+      SignalRegistry.instance = new SignalRegistry();
+    }
+    return SignalRegistry.instance;
+  }
+
+  register(name: string, signal: RankingSignal): void {
+    this.registry.set(name, signal);
+  }
+
+  set(name: string, signal: RankingSignal): void {
+    this.registry.set(name, signal);
+  }
+
+  [Symbol.iterator](): IterableIterator<[string, RankingSignal]> {
+    return this.registry.entries();
+  }
 }
 
-export const signalRegistry = new Map<string, RankingSignal>();
-
-// Convert existing rankingAlgorithms entries into signalRegistry for unified pipeline
+export const signalRegistry = SignalRegistry.getInstance();
 signalRegistry.set("gpu", {
   name: "gpu",
   select: (spec: DerivedSpec) => spec.requirements.some((r) => isGpuRequirement(r.value)),

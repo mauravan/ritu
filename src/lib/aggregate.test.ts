@@ -93,8 +93,18 @@ describe("aggregate", () => {
 
     it("deduplicates by id across marketplaces", () => {
       const products = [
-        makeProduct({ id: "1", marketplace: "ricardo", title: "iPhone 15", priceChf: 800 }),
-        makeProduct({ id: "1", marketplace: "tutti", title: "iPhone 15", priceChf: 800 }),
+        makeProduct({
+          id: "1",
+          marketplace: "ricardo",
+          title: "iPhone 15",
+          priceChf: 800,
+        }),
+        makeProduct({
+          id: "1",
+          marketplace: "tutti",
+          title: "iPhone 15",
+          priceChf: 800,
+        }),
       ];
       const result = aggregate([products]);
       expect(result).toHaveLength(1);

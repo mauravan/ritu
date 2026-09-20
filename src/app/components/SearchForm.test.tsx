@@ -27,21 +27,29 @@ describe("SearchForm regression - clarification reset", () => {
     render(<SearchForm onSearch={onSearch} isLoading={false} error={null} />);
 
     // regular search works
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "laptop" } });
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "laptop" },
+    });
     fireEvent.click(screen.getByRole("button", { name: /search$/i }));
     await waitFor(() =>
-      expect(onSearch).toHaveBeenCalledWith("laptop", "both", { askQuestion: false }),
+      expect(onSearch).toHaveBeenCalledWith("laptop", "both", {
+        askQuestion: false,
+      }),
     );
 
     // ask clarifying question
     callIndex = 0;
     onSearch.mockClear();
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "laptop" } });
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "laptop" },
+    });
     fireEvent.click(screen.getByRole("button", { name: /search with question/i }));
     await waitFor(() => expect(screen.getByText("What size?")).toBeDefined());
 
     // fill answer and confirm
-    fireEvent.change(screen.getByPlaceholderText(/your answer/i), { target: { value: "13 inch" } });
+    fireEvent.change(screen.getByPlaceholderText(/your answer/i), {
+      target: { value: "13 inch" },
+    });
     fireEvent.click(screen.getByRole("button", { name: /confirm/i }));
 
     // after confirmation, clarification UI removed and buttons present
@@ -50,7 +58,9 @@ describe("SearchForm regression - clarification reset", () => {
     expect(screen.getByRole("button", { name: /search with question/i })).toBeDefined();
 
     // second question request succeeds (shows clarification reset works)
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "laptop" } });
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "laptop" },
+    });
     fireEvent.click(screen.getByRole("button", { name: /search with question/i }));
     await waitFor(() => expect(screen.getByText("What budget?")).toBeDefined());
   });
@@ -106,7 +116,9 @@ describe("SearchForm edge cases", () => {
       /describe what you need|beschreibe dein bed.+rfnis/i,
     );
     fireEvent.change(textareas[0], { target: { value: "laptop" } });
-    const buttons = screen.getAllByRole("button", { name: /search with question/i });
+    const buttons = screen.getAllByRole("button", {
+      name: /search with question/i,
+    });
     if (!buttons[0].disabled) {
       fireEvent.click(buttons[0]);
       await waitFor(() => expect(screen.getByText(/what size|was gr..s/i)).toBeDefined());
