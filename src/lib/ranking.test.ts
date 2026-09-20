@@ -190,8 +190,18 @@ describe("ranking", () => {
         string,
         { id: string; relevance: number; relevant: boolean; reason: string }
       >();
-      llmScores.set("1", { id: "1", relevance: 95, relevant: true, reason: "excellent match" });
-      llmScores.set("2", { id: "2", relevance: 30, relevant: false, reason: "weak match" });
+      llmScores.set("1", {
+        id: "1",
+        relevance: 95,
+        relevant: true,
+        reason: "excellent match",
+      });
+      llmScores.set("2", {
+        id: "2",
+        relevance: 30,
+        relevant: false,
+        reason: "weak match",
+      });
       const result = rankProductsUnified(products, baseSpec, llmScores);
       expect(result[0].id).toBe("1");
       expect(result[0].relevance).toBe(95);
@@ -199,7 +209,13 @@ describe("ranking", () => {
 
     it("handles custom weights from env", () => {
       vi.stubEnv("RANKING_SIGNAL_WEIGHTS", '{"gpu": 2.0}');
-      const products = [makeProduct({ id: "1", title: "i7 16gb rtx 3080 laptop", priceChf: 1500 })];
+      const products = [
+        makeProduct({
+          id: "1",
+          title: "i7 16gb rtx 3080 laptop",
+          priceChf: 1500,
+        }),
+      ];
       const result = rankProductsUnified(products, baseSpec);
       expect(result).toHaveLength(1);
       vi.unstubAllEnvs();
@@ -215,8 +231,18 @@ describe("ranking", () => {
 
     it("assigns best condition tag for new products with specScore >= 50", () => {
       const products = [
-        makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800, condition: "new" }),
-        makeProduct({ id: "2", title: "i7 16gb laptop", priceChf: 500, condition: "used" }),
+        makeProduct({
+          id: "1",
+          title: "i7 16gb laptop",
+          priceChf: 800,
+          condition: "new",
+        }),
+        makeProduct({
+          id: "2",
+          title: "i7 16gb laptop",
+          priceChf: 500,
+          condition: "used",
+        }),
       ];
       const result = rankProductsUnified(products, baseSpec);
       expect(result.some((p) => p.tags.includes("best condition"))).toBe(true);
@@ -258,8 +284,18 @@ describe("ranking", () => {
 
     it("does not assign best condition when no new products", () => {
       const products = [
-        makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800, condition: "used" }),
-        makeProduct({ id: "2", title: "i7 16gb laptop", priceChf: 500, condition: "refurbished" }),
+        makeProduct({
+          id: "1",
+          title: "i7 16gb laptop",
+          priceChf: 800,
+          condition: "used",
+        }),
+        makeProduct({
+          id: "2",
+          title: "i7 16gb laptop",
+          priceChf: 500,
+          condition: "refurbished",
+        }),
       ];
       const result = rankProductsUnified(products, baseSpec);
       expect(result.some((p) => p.tags.includes("best condition"))).toBe(false);
@@ -267,7 +303,12 @@ describe("ranking", () => {
 
     it("does not assign best condition when specScore < 50", () => {
       const products = [
-        makeProduct({ id: "1", title: "unrelated product", priceChf: 800, condition: "new" }),
+        makeProduct({
+          id: "1",
+          title: "unrelated product",
+          priceChf: 800,
+          condition: "new",
+        }),
       ];
       const result = rankProductsUnified(products, baseSpec);
       expect(result.some((p) => p.tags.includes("best condition"))).toBe(false);
@@ -323,8 +364,18 @@ describe("ranking", () => {
         string,
         { id: string; relevance: number; relevant: boolean; reason: string }
       >();
-      llmScores.set("1", { id: "1", relevance: 95, relevant: true, reason: "match" });
-      llmScores.set("2", { id: "2", relevance: 50, relevant: false, reason: "irrelevant" });
+      llmScores.set("1", {
+        id: "1",
+        relevance: 95,
+        relevant: true,
+        reason: "match",
+      });
+      llmScores.set("2", {
+        id: "2",
+        relevance: 50,
+        relevant: false,
+        reason: "irrelevant",
+      });
       const result = rankProductsUnified(products, baseSpec, llmScores);
       expect(result).toHaveLength(1);
     });
@@ -352,7 +403,12 @@ describe("ranking", () => {
       };
       const products = [
         makeProduct({ id: "1", title: "laptop 32gb", priceChf: 800 }),
-        makeProduct({ id: "2", title: "laptop", raw: "has 32gb memory", priceChf: 700 }),
+        makeProduct({
+          id: "2",
+          title: "laptop",
+          raw: "has 32gb memory",
+          priceChf: 700,
+        }),
       ];
       const result = rankProductsUnified(products, prefSpec);
       expect(result).toHaveLength(2);
@@ -370,9 +426,19 @@ describe("ranking", () => {
         requirements: [{ key: "gpu", value: "rtx 3080", importance: "required" }],
       };
       const products = [
-        makeProduct({ id: "1", title: "laptop", raw: "has rtx 3060 inside", priceChf: 1000 }),
+        makeProduct({
+          id: "1",
+          title: "laptop",
+          raw: "has rtx 3060 inside",
+          priceChf: 1000,
+        }),
         makeProduct({ id: "2", title: "plain laptop", raw: {}, priceChf: 800 }),
-        makeProduct({ id: "3", title: "laptop rtx 3080", raw: null, priceChf: 1200 }),
+        makeProduct({
+          id: "3",
+          title: "laptop rtx 3080",
+          raw: null,
+          priceChf: 1200,
+        }),
       ];
       const result = rankProductsUnified(products, gpuSpec);
       expect(result).toHaveLength(3);
@@ -419,8 +485,26 @@ describe("ranking", () => {
         requirements: [{ key: "ram", value: "32gb", importance: "required" as const }],
       };
       const llmScores = new Map([
-        ["1", { id: "1", relevance: 5, relevant: false, reason: "fails", fulfillsRequired: false }],
-        ["2", { id: "2", relevance: 95, relevant: true, reason: "match", fulfillsRequired: true }],
+        [
+          "1",
+          {
+            id: "1",
+            relevance: 5,
+            relevant: false,
+            reason: "fails",
+            fulfillsRequired: false,
+          },
+        ],
+        [
+          "2",
+          {
+            id: "2",
+            relevance: 95,
+            relevant: true,
+            reason: "match",
+            fulfillsRequired: true,
+          },
+        ],
       ]);
       const result = rankProductsUnified(
         products as unknown as Parameters<typeof rankProductsUnified>[0],

@@ -11,7 +11,9 @@ vi.mock("tutti-api", () => ({
               title: "Mock PC",
               formattedPrice: "CHF 100",
               images: [{ rendition: { src: "https://cdn.tutti.ch/img.jpg" } }],
-              thumbnail: { rendition: { src: "https://cdn.tutti.ch/thumb.jpg" } },
+              thumbnail: {
+                rendition: { src: "https://cdn.tutti.ch/thumb.jpg" },
+              },
               postcodeInformation: { locationName: "Zurich" },
               address: "Zurich",
             },

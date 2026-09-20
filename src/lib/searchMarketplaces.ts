@@ -12,9 +12,17 @@ export function buildMarketplaceQueries(
   return searchQueries.flatMap((q) => {
     const arr: MarketplaceQuery[] = [];
     if (platform === "both" || platform === "ricardo")
-      arr.push({ marketplace: "ricardo" as const, query: q, url: buildRicardoUrl(q) });
+      arr.push({
+        marketplace: "ricardo" as const,
+        query: q,
+        url: buildRicardoUrl(q),
+      });
     if (platform === "both" || platform === "tutti")
-      arr.push({ marketplace: "tutti" as const, query: q, url: buildTuttiUrl(q) });
+      arr.push({
+        marketplace: "tutti" as const,
+        query: q,
+        url: buildTuttiUrl(q),
+      });
     return arr;
   });
 }
@@ -76,15 +84,16 @@ export function augmentSearchQueries(searchQueries: string[], spec: DerivedSpec)
 export async function searchMarketplaces(
   searchQueries: string[],
   platform: Platform,
+  opts?: { zipCode?: string; radius?: number },
 ): Promise<RawProduct[]> {
   const limitedQueries = searchQueries.slice(0, 3);
   const ricardoPromises: Promise<RawProduct[]>[] =
     platform === "both" || platform === "ricardo"
-      ? limitedQueries.map((q) => searchRicardo(q, 20))
+      ? limitedQueries.map((q) => searchRicardo(q, 20, opts))
       : [];
   const tuttiPromises: Promise<RawProduct[]>[] =
     platform === "both" || platform === "tutti"
-      ? limitedQueries.map((q) => searchTutti(q, 20))
+      ? limitedQueries.map((q) => searchTutti(q, 20, opts))
       : [];
   const ricardoSettled = await Promise.allSettled(ricardoPromises);
   const tuttiSettled = await Promise.allSettled(tuttiPromises);
@@ -97,8 +106,12 @@ export async function searchMarketplaces(
 
   // Handle individual rejections (aggregate behavior unchanged; rejected promises excluded from results)
   for (const rej of ricardoSettled.filter(
-    (r): r is PromiseSettledResult<unknown> & { status: "rejected"; reason: unknown } =>
-      r.status === "rejected",
+    (
+      r,
+    ): r is PromiseSettledResult<unknown> & {
+      status: "rejected";
+      reason: unknown;
+    } => r.status === "rejected",
   )) {
     const reason = (rej as { reason: unknown }).reason;
     const maxBody = 800;
@@ -128,8 +141,12 @@ export async function searchMarketplaces(
     });
   }
   for (const rej of tuttiSettled.filter(
-    (r): r is PromiseSettledResult<unknown> & { status: "rejected"; reason: unknown } =>
-      r.status === "rejected",
+    (
+      r,
+    ): r is PromiseSettledResult<unknown> & {
+      status: "rejected";
+      reason: unknown;
+    } => r.status === "rejected",
   )) {
     const reason = (rej as { reason: unknown }).reason;
     logger.error({

@@ -2,7 +2,12 @@ import https from "node:https";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { logger } from "./logger";
 
-function parseProxies(): Array<{ host: string; port: string; username: string; password: string }> {
+function parseProxies(): Array<{
+  host: string;
+  port: string;
+  username: string;
+  password: string;
+}> {
   const raw = process.env.PROXY_LIST ?? "";
   return raw
     .split(",")
@@ -18,7 +23,14 @@ function parseProxies(): Array<{ host: string; port: string; username: string; p
       return { host, port, username, password };
     })
     .filter(
-      (p): p is { host: string; port: string; username: string; password: string } => p !== null,
+      (
+        p,
+      ): p is {
+        host: string;
+        port: string;
+        username: string;
+        password: string;
+      } => p !== null,
     );
 }
 

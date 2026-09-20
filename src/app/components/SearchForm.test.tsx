@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // biome-ignore lint/correctness/noUnusedImports: used in props if needed
 import type { Platform } from "@/lib/types";
@@ -9,6 +9,7 @@ describe("SearchForm regression - clarification reset", () => {
     window.localStorage.setItem("locale", "en");
   });
   afterEach(() => {
+    cleanup();
     window.localStorage.clear();
   });
 
@@ -27,21 +28,29 @@ describe("SearchForm regression - clarification reset", () => {
     render(<SearchForm onSearch={onSearch} isLoading={false} error={null} />);
 
     // regular search works
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "laptop" } });
+    fireEvent.change(screen.getByRole("textbox", { name: /what are you looking for/i }), {
+      target: { value: "laptop" },
+    });
     fireEvent.click(screen.getByRole("button", { name: /search$/i }));
     await waitFor(() =>
-      expect(onSearch).toHaveBeenCalledWith("laptop", "both", { askQuestion: false }),
+      expect(onSearch).toHaveBeenCalledWith("laptop", "both", {
+        askQuestion: false,
+      }),
     );
 
     // ask clarifying question
     callIndex = 0;
     onSearch.mockClear();
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "laptop" } });
+    fireEvent.change(screen.getByRole("textbox", { name: /what are you looking for/i }), {
+      target: { value: "laptop" },
+    });
     fireEvent.click(screen.getByRole("button", { name: /search with question/i }));
     await waitFor(() => expect(screen.getByText("What size?")).toBeDefined());
 
     // fill answer and confirm
-    fireEvent.change(screen.getByPlaceholderText(/your answer/i), { target: { value: "13 inch" } });
+    fireEvent.change(screen.getByPlaceholderText(/your answer/i), {
+      target: { value: "13 inch" },
+    });
     fireEvent.click(screen.getByRole("button", { name: /confirm/i }));
 
     // after confirmation, clarification UI removed and buttons present
@@ -50,7 +59,9 @@ describe("SearchForm regression - clarification reset", () => {
     expect(screen.getByRole("button", { name: /search with question/i })).toBeDefined();
 
     // second question request succeeds (shows clarification reset works)
-    fireEvent.change(screen.getByRole("textbox"), { target: { value: "laptop" } });
+    fireEvent.change(screen.getByRole("textbox", { name: /what are you looking for/i }), {
+      target: { value: "laptop" },
+    });
     fireEvent.click(screen.getByRole("button", { name: /search with question/i }));
     await waitFor(() => expect(screen.getByText("What budget?")).toBeDefined());
   });
@@ -61,6 +72,7 @@ describe("SearchForm edge cases", () => {
     window.localStorage.setItem("locale", "en");
   });
   afterEach(() => {
+    cleanup();
     window.localStorage.clear();
   });
 
@@ -106,12 +118,14 @@ describe("SearchForm edge cases", () => {
       /describe what you need|beschreibe dein bed.+rfnis/i,
     );
     fireEvent.change(textareas[0], { target: { value: "laptop" } });
-    const buttons = screen.getAllByRole("button", { name: /search with question/i });
+    const buttons = screen.getAllByRole("button", {
+      name: /search with question/i,
+    });
     if (!buttons[0].disabled) {
       fireEvent.click(buttons[0]);
       await waitFor(() => expect(screen.getByText(/what size|was gr..s/i)).toBeDefined());
       const ricardoBtns = screen.getAllByText("Ricardo");
-      expect(ricardoBtns[0]).toHaveAttribute("disabled");
+      expect(ricardoBtns[0].closest("button")?.disabled).toBe(true);
     }
   });
 });

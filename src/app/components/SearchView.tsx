@@ -92,13 +92,18 @@ export default function SearchView() {
         }),
       });
       if (deriveRes.ok) {
-        const deriveData = (await deriveRes.json()) as { derivedSpec?: DerivedSpec };
+        const deriveData = (await deriveRes.json()) as {
+          derivedSpec?: DerivedSpec;
+        };
         if (deriveData.derivedSpec) {
           setDerivedSpec(deriveData.derivedSpec);
           derivedForFull = deriveData.derivedSpec;
         }
       } else {
-        const errData = (await deriveRes.json()) as { error?: string; details?: string };
+        const errData = (await deriveRes.json()) as {
+          error?: string;
+          details?: string;
+        };
         console.warn(`[RITU][CLIENT] derive failed ${deriveRes.status}`, errData);
       }
 

@@ -116,7 +116,10 @@ export async function withTuttiLimit<T>(fn: () => Promise<T>): Promise<T> {
   });
 }
 
-function isRateLimitedError(err: unknown): { limited: boolean; retryAfterMs: number | null } {
+function isRateLimitedError(err: unknown): {
+  limited: boolean;
+  retryAfterMs: number | null;
+} {
   // Check TuttiHttpError with status 429
   if (err && typeof err === "object") {
     const e = err as Record<string, unknown>;

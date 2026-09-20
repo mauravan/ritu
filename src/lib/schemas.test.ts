@@ -29,10 +29,18 @@ describe("schemas contracts", () => {
 
   it("MarketplaceQuerySchema validates marketplace enum", () => {
     expect(
-      MarketplaceQuerySchema.safeParse({ marketplace: "tutti", query: "x", url: "y" }).success,
+      MarketplaceQuerySchema.safeParse({
+        marketplace: "tutti",
+        query: "x",
+        url: "y",
+      }).success,
     ).toBe(true);
     expect(
-      MarketplaceQuerySchema.safeParse({ marketplace: "bad", query: "x", url: "y" }).success,
+      MarketplaceQuerySchema.safeParse({
+        marketplace: "bad",
+        query: "x",
+        url: "y",
+      }).success,
     ).toBe(false);
   });
 

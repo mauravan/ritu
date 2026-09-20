@@ -122,6 +122,7 @@
 }
 [data-theme="dark"] .theme-glyph-dark {
   display: inline-block;
+  height: inherit;
 }
 
 /* Score meter functional tick mask: 8px visual ticks */

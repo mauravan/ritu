@@ -45,7 +45,9 @@ describe("ListingDescription", () => {
       "fetch",
       vi.fn(() =>
         Promise.resolve(
-          new Response(JSON.stringify({ description: "Line 1\nLine 2" }), { status: 200 }),
+          new Response(JSON.stringify({ description: "Line 1\nLine 2" }), {
+            status: 200,
+          }),
         ),
       ),
     );

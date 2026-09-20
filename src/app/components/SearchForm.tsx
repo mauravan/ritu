@@ -22,6 +22,8 @@ type Props = {
       clarifyingAnswer?: string;
       clarifyingQuestion?: string;
       originalQuery?: string;
+      zipCode?: string;
+      radius?: number;
     },
   ) => Promise<SearchResponse>;
   isLoading: boolean;
@@ -40,8 +42,9 @@ export default function SearchForm({ onSearch, isLoading, error }: Props) {
   const [awaitingClarification, setAwaitingClarification] = useState(false);
   const [clarifyingQuestion, setClarifyingQuestion] = useState("");
   const [clarifyingAnswer, setClarifyingAnswer] = useState("");
+  const [zipCode, setZipCode] = useState("");
+  const [radius, setRadius] = useState(20);
   const [originalQuery, setOriginalQuery] = useState("");
-
   const runSubmit = async (askQuestionParam = false) => {
     const trimmedQuery = query.trim();
     if (!trimmedQuery) return;
@@ -53,8 +56,11 @@ export default function SearchForm({ onSearch, isLoading, error }: Props) {
           clarifyingQuestion: clarifyingQuestion,
           originalQuery: originalQuery,
         }
-      : { askQuestion: askQuestionParam };
-    setAwaitingClarification(true);
+      : {
+          askQuestion: askQuestionParam,
+          zipCode: zipCode.trim() || undefined,
+          radius: zipCode.trim() ? radius : undefined,
+        };
     try {
       const response = await onSearch(nextQuery, platform, opts);
       if (isConfirmation) {
@@ -75,6 +81,7 @@ export default function SearchForm({ onSearch, isLoading, error }: Props) {
         setClarifyingQuestion(response.clarifyingQuestion);
         setOriginalQuery(trimmedQuery);
         setClarifyingAnswer("");
+        setAwaitingClarification(true);
         return;
       }
       setAwaitingClarification(false);
@@ -151,31 +158,52 @@ export default function SearchForm({ onSearch, isLoading, error }: Props) {
                 disabled={isLoading || awaitingClarification}
               />
             </div>
-
-            {!awaitingClarification && (
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                <LoadingButton
-                  type="submit"
-                  isLoading={isLoading}
-                  disabled={isLoading || query.trim().length < 3 || awaitingClarification}
-                  className="bracket-tag px-4 py-1.5 text-xs font-medium rounded-[2px] bg-interface-accent text-on-selection hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer text-center"
-                >
-                  {String((dict as Record<string, unknown>).search_button ?? "Search")}
-                </LoadingButton>
-                <LoadingButton
-                  type="button"
-                  isLoading={isLoading}
-                  disabled={isLoading || query.trim().length < 3 || awaitingClarification}
-                  onClick={handleSearchWithQuestion}
-                  className="bracket-tag px-4 py-1.5 text-xs font-medium rounded-[2px] border border-border bg-panel text-text-primary hover:bg-surface-subtle disabled:opacity-50 transition-colors cursor-pointer text-center"
-                >
-                  {String(
-                    (dict as Record<string, unknown>).search_with_question ??
-                      "Search with question",
-                  )}
-                </LoadingButton>
-              </div>
-            )}
+            <div className="flex flex-wrap gap-2">
+              <label className="flex flex-col text-xs">
+                <span className="text-text-secondary mb-0.5">PLZ</span>
+                <input
+                  type="text"
+                  maxLength={4}
+                  value={zipCode}
+                  onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  className="w-16 rounded-[2px] border border-border bg-panel px-2 py-1 text-xs"
+                />
+              </label>
+              <label className="flex flex-col text-xs">
+                <span className="text-text-secondary mb-0.5">Radius (km)</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={radius}
+                  onChange={(e) =>
+                    setRadius(Math.max(1, Math.min(100, Number(e.target.value) || 20)))
+                  }
+                  className="w-20 rounded-[2px] border border-border bg-panel px-2 py-1 text-xs"
+                />
+              </label>
+            </div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <LoadingButton
+                type="submit"
+                isLoading={isLoading}
+                disabled={isLoading || query.trim().length < 3 || awaitingClarification}
+                className="bracket-tag px-4 py-1.5 text-xs font-medium rounded-[2px] bg-interface-accent text-on-selection hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer text-center"
+              >
+                {String((dict as Record<string, unknown>).search_button ?? "Search")}
+              </LoadingButton>
+              <LoadingButton
+                type="button"
+                isLoading={isLoading}
+                disabled={isLoading || query.trim().length < 3 || awaitingClarification}
+                onClick={handleSearchWithQuestion}
+                className="bracket-tag px-4 py-1.5 text-xs font-medium rounded-[2px] border border-border bg-panel text-text-primary hover:bg-surface-subtle disabled:opacity-50 transition-colors cursor-pointer text-center"
+              >
+                {String(
+                  (dict as Record<string, unknown>).search_with_question ?? "Search with question",
+                )}
+              </LoadingButton>
+            </div>
           </div>
         </div>
 

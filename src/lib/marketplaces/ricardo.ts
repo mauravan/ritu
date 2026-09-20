@@ -17,43 +17,54 @@ export function buildRicardoUrl(query: string): string {
   return `https://www.ricardo.ch/de/s/${encodeURIComponent(query)}/`;
 }
 
-export async function searchRicardo(query: string, limit = 20): Promise<RawProduct[]> {
+export async function searchRicardo(
+  query: string,
+  limit = 20,
+  opts?: { zipCode?: string; radius?: number },
+): Promise<RawProduct[]> {
   logger.info(`[RITU][RICARDO] search query="${query}" limit=${limit}`);
-  // ricardo-api uses mobile endpoint /m/search with AWS SigV4 (x-authorization);
-  // web session cookies are not used by this endpoint and cause 403 from WAF.
   const client = new RicardoClient({ fetch: getProxyFetch() });
-  const _result = await client.search(query).fetch();
+  const searchChain = opts?.zipCode
+    ? client
+        .search(query)
+        .zipcode(opts.zipCode)
+        .range(opts.radius ?? 20)
+    : client.search(query);
+  const _result = await searchChain.fetch();
   interface RicardoListing {
     listingID?: string | number;
     id?: string | number;
     title?: string;
-    buyNowPrice?: string | number;
-    bidPrice?: string | number;
+    buyNowPrice?: string | number | null;
+    bidPrice?: string | number | null;
     images?: Array<{ rendition?: { src?: string } }>;
     image_url?: string;
+    city?: string;
+    zip_code?: string;
   }
-  const mapped: RawProduct[] = _result.listings.slice(0, limit).map((a: RicardoListing) => {
-    const id = String(a.listingID ?? a.id ?? "");
-    const title = String(a.title ?? "");
+  const mapped: RawProduct[] = _result.listings.slice(0, limit).map((a) => {
+    const listing = a as unknown as RicardoListing;
+    const id = String(listing.listingID ?? listing.id ?? "");
+    const title = String(listing.title ?? "");
     const priceChf =
-      a.buyNowPrice != null
-        ? Number(a.buyNowPrice) / 100
-        : a.bidPrice != null
-          ? Number(a.bidPrice) / 100
+      listing.buyNowPrice != null
+        ? Number(listing.buyNowPrice) / 100
+        : listing.bidPrice != null
+          ? Number(listing.bidPrice) / 100
           : null;
-    const imageUrl = a.images?.[0]?.rendition?.src ?? a.image_url ?? null;
+    const imageUrl = listing.images?.[0]?.rendition?.src ?? listing.image_url ?? null;
     return {
       id,
       marketplace: "ricardo" as const,
       title,
       priceChf,
-      bidPriceChf: a.bidPrice != null ? Number(a.bidPrice) / 100 : null,
+      bidPriceChf: listing.bidPrice != null ? Number(listing.bidPrice) / 100 : null,
       listedPriceChf: priceChf,
       currency: "CHF" as const,
       condition: null,
       imageUrl: typeof imageUrl === "string" ? imageUrl.replace("t_265x200", "t_800x600") : null,
       url: `https://www.ricardo.ch/de/a/${slugify(title)}-${id}/`,
-      location: null,
+      location: listing.city || listing.zip_code || null,
       raw: a,
     } satisfies RawProduct;
   });

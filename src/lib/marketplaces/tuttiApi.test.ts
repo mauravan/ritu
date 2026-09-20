@@ -103,7 +103,10 @@ describe("tuttiApi", () => {
     });
 
     it("uses fallback price field", () => {
-      const listing = makeListing({ formattedPrice: undefined, price: "CHF 200" });
+      const listing = makeListing({
+        formattedPrice: undefined,
+        price: "CHF 200",
+      });
       const result = listingToRawProduct(listing as Listing);
       expect(result.priceChf).toBe(200);
     });
