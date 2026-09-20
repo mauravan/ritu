@@ -187,9 +187,7 @@ export default function SearchForm({
                   type="text"
                   maxLength={4}
                   value={zipCode}
-                  onChange={(e) =>
-                    onZipCodeChange(e.target.value.replace(/\D/g, "").slice(0, 4))
-                  }
+                  onChange={(e) => onZipCodeChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
                   className="w-16 rounded-[2px] border border-border bg-panel px-2 py-1 text-xs"
                 />
               </label>

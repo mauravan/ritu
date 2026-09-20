@@ -2,10 +2,7 @@ import { describe, expect, it } from "vitest";
 import { sortProducts } from "./sort";
 import type { RankedProduct, SortBy } from "./types";
 
-function mk(
-  id: string,
-  overrides: Partial<RankedProduct> = {},
-): RankedProduct {
+function mk(id: string, overrides: Partial<RankedProduct> = {}): RankedProduct {
   return {
     id,
     marketplace: "ricardo",
@@ -88,12 +85,7 @@ describe("sortProducts", () => {
       mk("c", { location: "Bern" }),
       mk("d", { location: "8001 Altstetten" }),
     ];
-    expect(ids(sortProducts(products, "near", "asc", "8001"))).toEqual([
-      "d",
-      "b",
-      "c",
-      "a",
-    ]);
+    expect(ids(sortProducts(products, "near", "asc", "8001"))).toEqual(["d", "b", "c", "a"]);
   });
 
   it("near with zip descending flips both stages", () => {
@@ -103,12 +95,7 @@ describe("sortProducts", () => {
       mk("c", { location: "Bern" }),
       mk("d", { location: "8001 Altstetten" }),
     ];
-    expect(ids(sortProducts(products, "near", "desc", "8001"))).toEqual([
-      "a",
-      "c",
-      "b",
-      "d",
-    ]);
+    expect(ids(sortProducts(products, "near", "desc", "8001"))).toEqual(["a", "c", "b", "d"]);
   });
 
   it("near without zip is pure alphabetical", () => {

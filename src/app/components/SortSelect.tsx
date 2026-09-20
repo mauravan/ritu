@@ -2,10 +2,7 @@ import type { SortBy, SortDir } from "@/lib/types";
 
 const FIELDS: SortBy[] = ["spec", "value", "ai", "hybrid", "price", "near"];
 
-function fieldLabel(
-  field: SortBy,
-  dict: Record<string, unknown>,
-): string {
+function fieldLabel(field: SortBy, dict: Record<string, unknown>): string {
   switch (field) {
     case "spec":
       return String(dict.spec_label ?? "Spec");
@@ -44,10 +41,7 @@ export default function SortSelect({
   const ariaTemplate = String(dict.sort_aria ?? "Sort by {label}, {direction}");
 
   return (
-    <fieldset
-      aria-label={label}
-      className="flex items-center gap-2 flex-wrap"
-    >
+    <fieldset aria-label={label} className="flex items-center gap-2 flex-wrap">
       <span className="text-xs text-text-secondary select-none">{label}</span>
       {FIELDS.map((field) => {
         const isSelected = by === field;
@@ -60,13 +54,9 @@ export default function SortSelect({
             key={field}
             type="button"
             aria-pressed={isSelected}
-            aria-label={ariaTemplate
-              .replace("{label}", text)
-              .replace("{direction}", dirWord)}
+            aria-label={ariaTemplate.replace("{label}", text).replace("{direction}", dirWord)}
             disabled={isDisabled}
-            onClick={() =>
-              onChange(field, isSelected ? (dir === "desc" ? "asc" : "desc") : dir)
-            }
+            onClick={() => onChange(field, isSelected ? (dir === "desc" ? "asc" : "desc") : dir)}
             className={`bracket-tag px-2 py-1 text-xs rounded-[2px] border transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
               isSelected
                 ? "bg-selection text-on-selection border-selection font-medium"
