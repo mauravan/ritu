@@ -25,7 +25,18 @@ describe("SearchForm regression - clarification reset", () => {
       return next as { clarifyingQuestion: string } | undefined;
     });
 
-    render(<SearchForm onSearch={onSearch} isLoading={false} error={null} />);
+    render(
+      <SearchForm
+        onSearch={onSearch}
+        isLoading={false}
+        error={null}
+        sortBy="hybrid"
+        sortDir="desc"
+        onSortChange={() => undefined}
+        zipCode=""
+        onZipCodeChange={() => undefined}
+      />,
+    );
 
     // regular search works
     fireEvent.change(screen.getByRole("textbox", { name: /what are you looking for/i }), {
@@ -78,7 +89,18 @@ describe("SearchForm edge cases", () => {
 
   it("handles locale-change event without throwing", () => {
     const onSearch = vi.fn(async () => undefined);
-    render(<SearchForm onSearch={onSearch} isLoading={false} error={null} />);
+    render(
+      <SearchForm
+        onSearch={onSearch}
+        isLoading={false}
+        error={null}
+        sortBy="hybrid"
+        sortDir="desc"
+        onSortChange={() => undefined}
+        zipCode=""
+        onZipCodeChange={() => undefined}
+      />,
+    );
     // Dispatch locale-change event
     fireEvent(window, new CustomEvent("locale-change", { detail: "de" }));
     // Should not throw
@@ -89,7 +111,18 @@ describe("SearchForm edge cases", () => {
     const onSearch = vi.fn(async () => {
       throw new Error("API error");
     });
-    render(<SearchForm onSearch={onSearch} isLoading={false} error={null} />);
+    render(
+      <SearchForm
+        onSearch={onSearch}
+        isLoading={false}
+        error={null}
+        sortBy="hybrid"
+        sortDir="desc"
+        onSortChange={() => undefined}
+        zipCode=""
+        onZipCodeChange={() => undefined}
+      />,
+    );
     const textareas = screen.getAllByPlaceholderText(
       /describe what you need|beschreibe dein bed.+rfnis/i,
     );
@@ -107,13 +140,35 @@ describe("SearchForm edge cases", () => {
 
   it("disables platform buttons when isLoading", () => {
     const onSearch = vi.fn(async () => undefined);
-    render(<SearchForm onSearch={onSearch} isLoading={true} error={null} />);
+    render(
+      <SearchForm
+        onSearch={onSearch}
+        isLoading={true}
+        error={null}
+        sortBy="hybrid"
+        sortDir="desc"
+        onSortChange={() => undefined}
+        zipCode=""
+        onZipCodeChange={() => undefined}
+      />,
+    );
     const ricardoBtns = screen.getAllByText("Ricardo");
     expect(ricardoBtns[0].disabled).toBe(true);
   });
   it("disables platform buttons when awaitingClarification", async () => {
     const onSearch = vi.fn(async () => ({ clarifyingQuestion: "What size?" }));
-    render(<SearchForm onSearch={onSearch} isLoading={false} error={null} />);
+    render(
+      <SearchForm
+        onSearch={onSearch}
+        isLoading={false}
+        error={null}
+        sortBy="hybrid"
+        sortDir="desc"
+        onSortChange={() => undefined}
+        zipCode=""
+        onZipCodeChange={() => undefined}
+      />,
+    );
     const textareas = screen.getAllByPlaceholderText(
       /describe what you need|beschreibe dein bed.+rfnis/i,
     );
