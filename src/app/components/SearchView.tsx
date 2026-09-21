@@ -167,8 +167,8 @@ export default function SearchView() {
     }
   };
   const sorted = useMemo(
-    () => sortProducts(result?.products ?? [], sortBy, sortDir, zipCode),
-    [result, sortBy, sortDir, zipCode],
+    () => sortProducts(result?.products ?? [], sortBy, sortDir),
+    [result, sortBy, sortDir],
   );
 
   return (
@@ -177,12 +177,6 @@ export default function SearchView() {
         onSearch={handleSearch}
         isLoading={isLoading}
         error={error}
-        sortBy={sortBy}
-        sortDir={sortDir}
-        onSortChange={(b, d) => {
-          setSortBy(b);
-          setSortDir(d);
-        }}
         zipCode={zipCode}
         onZipCodeChange={setZipCode}
       />
@@ -196,7 +190,15 @@ export default function SearchView() {
               {/* Left on desktop, below products in DOM/mobile if needed or handled via CSS grid order */}
               {/* Plan: "Use CSS grid placement so desktop trace appears left while DOM/mobile order keeps products first." */}
               <div className="lg:col-start-2 lg:row-start-1">
-                <ProductList products={sorted} />
+                <ProductList
+                  products={sorted}
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSortChange={(b, d) => {
+                    setSortBy(b);
+                    setSortDir(d);
+                  }}
+                />
                 {result.products.length === 0 && (
                   <div className="mt-4 p-3 border border-border bg-panel rounded-[2px]">
                     <p className="text-xs text-marketplace-accent">

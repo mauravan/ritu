@@ -3,11 +3,10 @@
 import { useState } from "react";
 import de from "@/dictionaries/de.json";
 import en from "@/dictionaries/en.json";
-import type { Platform, SearchResult, SortBy, SortDir } from "@/lib/types";
+import type { Platform, SearchResult } from "@/lib/types";
 import LoadingButton from "./LoadingButton";
 import PlatformSelect from "./PlatformSelect";
 import SearchInput from "./SearchInput";
-import SortSelect from "./SortSelect";
 import useLocale from "./useLocale";
 
 const dictionaries = { de, en } as const;
@@ -29,9 +28,6 @@ type Props = {
   ) => Promise<SearchResponse>;
   isLoading: boolean;
   error: string | null;
-  sortBy: SortBy;
-  sortDir: SortDir;
-  onSortChange: (by: SortBy, dir: SortDir) => void;
   zipCode: string;
   onZipCodeChange: (zip: string) => void;
 };
@@ -40,9 +36,6 @@ export default function SearchForm({
   onSearch,
   isLoading,
   error,
-  sortBy,
-  sortDir,
-  onSortChange,
   zipCode,
   onZipCodeChange,
 }: Props) {
@@ -168,14 +161,6 @@ export default function SearchForm({
               <PlatformSelect
                 platform={platform}
                 setPlatform={setPlatform}
-                dict={dict as Record<string, unknown>}
-                disabled={isLoading || awaitingClarification}
-              />
-              <SortSelect
-                by={sortBy}
-                dir={sortDir}
-                onChange={onSortChange}
-                zipSet={zipCode.trim().length === 4}
                 dict={dict as Record<string, unknown>}
                 disabled={isLoading || awaitingClarification}
               />

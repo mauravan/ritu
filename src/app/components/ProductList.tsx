@@ -5,8 +5,9 @@ import { memo, useMemo } from "react";
 import de from "@/dictionaries/de.json";
 import en from "@/dictionaries/en.json";
 import { tagExplanation } from "@/lib/ranking";
-import type { RankedProduct } from "@/lib/types";
+import type { RankedProduct, SortBy, SortDir } from "@/lib/types";
 import ListingDescription from "./ListingDescription";
+import SortSelect from "./SortSelect";
 import Tooltip from "./Tooltip";
 import useLocale from "./useLocale";
 
@@ -244,7 +245,17 @@ const ProductItem = memo(function ProductItem({
   );
 });
 
-export default function ProductList({ products }: { products: RankedProduct[] }) {
+export default function ProductList({
+  products,
+  sortBy,
+  sortDir,
+  onSortChange,
+}: {
+  products: RankedProduct[];
+  sortBy: SortBy;
+  sortDir: SortDir;
+  onSortChange: (by: SortBy, dir: SortDir) => void;
+}) {
   const [locale] = useLocale();
   const dict = (dictionaries[locale] || dictionaries.de) as typeof en;
 
@@ -275,10 +286,18 @@ export default function ProductList({ products }: { products: RankedProduct[] })
 
   return (
     <div className="border border-border bg-panel rounded-[2px] overflow-hidden">
-      <div className="p-3 border-b border-border flex items-center justify-between text-xs font-medium text-text-secondary bg-panel">
-        <span className="pane-legend">
-          {resultsPaneLabel} {countLabel}
-        </span>
+      <div className="p-3 border-b border-border flex flex-wrap items-center justify-between gap-2 text-xs font-medium text-text-secondary bg-panel">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="pane-legend">
+            {resultsPaneLabel} {countLabel}
+          </span>
+          <SortSelect
+            by={sortBy}
+            dir={sortDir}
+            onChange={onSortChange}
+            dict={dict as Record<string, unknown>}
+          />
+        </div>
         <div className="text-right">
           <span className="text-[11px] block text-text-primary">
             {dict.ranked_products_heading}

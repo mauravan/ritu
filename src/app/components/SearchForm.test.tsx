@@ -30,9 +30,6 @@ describe("SearchForm regression - clarification reset", () => {
         onSearch={onSearch}
         isLoading={false}
         error={null}
-        sortBy="hybrid"
-        sortDir="desc"
-        onSortChange={() => undefined}
         zipCode=""
         onZipCodeChange={() => undefined}
       />,
@@ -94,9 +91,6 @@ describe("SearchForm edge cases", () => {
         onSearch={onSearch}
         isLoading={false}
         error={null}
-        sortBy="hybrid"
-        sortDir="desc"
-        onSortChange={() => undefined}
         zipCode=""
         onZipCodeChange={() => undefined}
       />,
@@ -116,9 +110,6 @@ describe("SearchForm edge cases", () => {
         onSearch={onSearch}
         isLoading={false}
         error={null}
-        sortBy="hybrid"
-        sortDir="desc"
-        onSortChange={() => undefined}
         zipCode=""
         onZipCodeChange={() => undefined}
       />,
@@ -145,9 +136,6 @@ describe("SearchForm edge cases", () => {
         onSearch={onSearch}
         isLoading={true}
         error={null}
-        sortBy="hybrid"
-        sortDir="desc"
-        onSortChange={() => undefined}
         zipCode=""
         onZipCodeChange={() => undefined}
       />,
@@ -162,9 +150,6 @@ describe("SearchForm edge cases", () => {
         onSearch={onSearch}
         isLoading={false}
         error={null}
-        sortBy="hybrid"
-        sortDir="desc"
-        onSortChange={() => undefined}
         zipCode=""
         onZipCodeChange={() => undefined}
       />,

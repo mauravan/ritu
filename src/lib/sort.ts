@@ -12,8 +12,6 @@ function numericField(p: RankedProduct, by: SortBy): number | null | undefined {
       return p.hybridScore;
     case "price":
       return p.priceChf;
-    case "near":
-      return undefined;
   }
 }
 
@@ -23,29 +21,9 @@ function tiebreak(a: RankedProduct, b: RankedProduct): number {
   return ka < kb ? -1 : ka > kb ? 1 : 0;
 }
 
-export function sortProducts(
-  products: RankedProduct[],
-  by: SortBy,
-  dir: SortDir,
-  zip?: string,
-): RankedProduct[] {
+export function sortProducts(products: RankedProduct[], by: SortBy, dir: SortDir): RankedProduct[] {
   const out = [...products];
   const flip = dir === "desc" ? -1 : 1;
-
-  if (by === "near") {
-    const z = (zip ?? "").trim();
-    out.sort((a, b) => {
-      if (z) {
-        const aMatch = (a.location ?? "").includes(z);
-        const bMatch = (b.location ?? "").includes(z);
-        if (aMatch !== bMatch) return (aMatch ? -1 : 1) * flip;
-      }
-      const cmp = (a.location ?? "").localeCompare(b.location ?? "");
-      if (cmp !== 0) return cmp * flip;
-      return tiebreak(a, b);
-    });
-    return out;
-  }
 
   out.sort((a, b) => {
     const va = numericField(a, by);

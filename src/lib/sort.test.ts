@@ -78,36 +78,6 @@ describe("sortProducts", () => {
     expect(ids(sortProducts(products, "hybrid", "desc"))).toEqual(["a", "c", "b"]);
   });
 
-  it("near with zip puts zip matches first, rest alphabetical", () => {
-    const products = [
-      mk("a", { location: "Luzern" }),
-      mk("b", { location: "8001 Zürich" }),
-      mk("c", { location: "Bern" }),
-      mk("d", { location: "8001 Altstetten" }),
-    ];
-    expect(ids(sortProducts(products, "near", "asc", "8001"))).toEqual(["d", "b", "c", "a"]);
-  });
-
-  it("near with zip descending flips both stages", () => {
-    const products = [
-      mk("a", { location: "Luzern" }),
-      mk("b", { location: "8001 Zürich" }),
-      mk("c", { location: "Bern" }),
-      mk("d", { location: "8001 Altstetten" }),
-    ];
-    expect(ids(sortProducts(products, "near", "desc", "8001"))).toEqual(["a", "c", "b", "d"]);
-  });
-
-  it("near without zip is pure alphabetical", () => {
-    const products = [
-      mk("a", { location: "Zürich" }),
-      mk("b", { location: "Bern" }),
-      mk("c", { location: "Aarau" }),
-    ];
-    expect(ids(sortProducts(products, "near", "asc"))).toEqual(["c", "b", "a"]);
-    expect(ids(sortProducts(products, "near", "desc"))).toEqual(["a", "b", "c"]);
-  });
-
   it("breaks ties on marketplace:id", () => {
     const products = [
       mk("b", { marketplace: "ricardo", specScore: 10 }),

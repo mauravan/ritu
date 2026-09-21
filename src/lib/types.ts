@@ -66,5 +66,5 @@ export type SearchResult = {
 // biome-ignore lint/complexity/noBannedTypes: placeholder response type
 export type ClarifyingResponse = {};
 
-export type SortBy = "spec" | "value" | "ai" | "hybrid" | "price" | "near";
+export type SortBy = "spec" | "value" | "ai" | "hybrid" | "price";
 export type SortDir = "asc" | "desc";
