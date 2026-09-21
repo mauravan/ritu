@@ -62,6 +62,8 @@ export default function SearchForm({
           clarifyingAnswer: clarifyingAnswer.trim(),
           clarifyingQuestion: clarifyingQuestion,
           originalQuery: originalQuery,
+          zipCode: zipCode.trim() || undefined,
+          radius: zipCode.trim() ? radius : undefined,
         }
       : {
           askQuestion: askQuestionParam,

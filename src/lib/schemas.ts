@@ -39,6 +39,7 @@ export const RawProductSchema = z
     imageUrl: z.string().nullable(),
     url: z.string(),
     location: z.string().nullable(),
+    zipCode: z.string().nullable().optional(),
     raw: z.unknown(),
   })
   .strict();

@@ -84,16 +84,16 @@ export function augmentSearchQueries(searchQueries: string[], spec: DerivedSpec)
 export async function searchMarketplaces(
   searchQueries: string[],
   platform: Platform,
-  opts?: { zipCode?: string; radius?: number },
+  limit = 20,
 ): Promise<RawProduct[]> {
   const limitedQueries = searchQueries.slice(0, 3);
   const ricardoPromises: Promise<RawProduct[]>[] =
     platform === "both" || platform === "ricardo"
-      ? limitedQueries.map((q) => searchRicardo(q, 20, opts))
+      ? limitedQueries.map((q) => searchRicardo(q, limit))
       : [];
   const tuttiPromises: Promise<RawProduct[]>[] =
     platform === "both" || platform === "tutti"
-      ? limitedQueries.map((q) => searchTutti(q, 20, opts))
+      ? limitedQueries.map((q) => searchTutti(q, limit))
       : [];
   const ricardoSettled = await Promise.allSettled(ricardoPromises);
   const tuttiSettled = await Promise.allSettled(tuttiPromises);

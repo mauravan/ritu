@@ -17,20 +17,10 @@ export function buildRicardoUrl(query: string): string {
   return `https://www.ricardo.ch/de/s/${encodeURIComponent(query)}/`;
 }
 
-export async function searchRicardo(
-  query: string,
-  limit = 20,
-  opts?: { zipCode?: string; radius?: number },
-): Promise<RawProduct[]> {
+export async function searchRicardo(query: string, limit = 20): Promise<RawProduct[]> {
   logger.info(`[RITU][RICARDO] search query="${query}" limit=${limit}`);
   const client = new RicardoClient({ fetch: getProxyFetch() });
-  const searchChain = opts?.zipCode
-    ? client
-        .search(query)
-        .zipcode(opts.zipCode)
-        .range(opts.radius ?? 20)
-    : client.search(query);
-  const _result = await searchChain.fetch();
+  const _result = await client.search(query).fetch();
   interface RicardoListing {
     listingID?: string | number;
     id?: string | number;
@@ -65,6 +55,7 @@ export async function searchRicardo(
       imageUrl: typeof imageUrl === "string" ? imageUrl.replace("t_265x200", "t_800x600") : null,
       url: `https://www.ricardo.ch/de/a/${slugify(title)}-${id}/`,
       location: listing.city || listing.zip_code || null,
+      zipCode: listing.zip_code != null ? String(listing.zip_code) : null,
       raw: a,
     } satisfies RawProduct;
   });

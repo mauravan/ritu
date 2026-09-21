@@ -4,6 +4,7 @@ import { SpecDerivationError, ValidationError } from "@/lib/errors";
 import { askClarifyingQuestion } from "@/lib/llm/askClarifying";
 import { deriveSpecs } from "@/lib/llm/deriveSpecs";
 import { runOptionalRerank } from "@/lib/llm/rerank";
+import { filterByDistance } from "@/lib/geo";
 import { logger } from "@/lib/logger";
 import { parseSearchRequest } from "@/lib/parseSearchRequest";
 import { rankProductsUnified } from "@/lib/ranking";
@@ -75,16 +76,20 @@ export async function POST(req: Request): Promise<Response> {
     `[RITU][SEARCH] fanout ${queries.length} queries: ${queries.map((q) => `${q.marketplace}:${q.query}`).join(" | ")}`,
   );
 
-  // Start independent fetch early; await late
-  const rawPromise = searchMarketplaces(searchQueries, platform, { zipCode, radius });
+  // Start independent fetch early; await late (raise cap so nearby items survive one page)
+  const rawPromise = searchMarketplaces(searchQueries, platform, zipCode ? 40 : 20);
 
   const raw = await rawPromise;
+  const filtered = zipCode && radius ? filterByDistance(raw, zipCode, radius) : raw;
+  logger.info(
+    `[RITU][SEARCH] distance filter ${raw.length} -> ${filtered.length} (zip=${zipCode}, radius=${radius}km)`,
+  );
 
   // Parallel independent rerank
-  const rerankPromise = runOptionalRerank(raw, spec);
+  const rerankPromise = runOptionalRerank(filtered, spec);
   const llmScores = await rerankPromise;
 
-  const products = rankProductsUnified(raw, spec, llmScores).slice(0, 40);
+  const products = rankProductsUnified(filtered, spec, llmScores).slice(0, 40);
   logger.info(
     `[RITU][SEARCH] ranked=${products.length} top3: ${products
       .slice(0, 3)
