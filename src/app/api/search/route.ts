@@ -87,9 +87,9 @@ export async function POST(req: Request): Promise<Response> {
 
   // Parallel independent rerank
   const rerankPromise = runOptionalRerank(filtered, spec);
-  const llmScores = await rerankPromise;
+  const rerankScores = await rerankPromise;
 
-  const products = rankProductsUnified(filtered, spec, llmScores).slice(0, 40);
+  const products = rankProductsUnified(filtered, spec, rerankScores);
   logger.info(
     `[RITU][SEARCH] ranked=${products.length} top3: ${products
       .slice(0, 3)
@@ -99,9 +99,9 @@ export async function POST(req: Request): Promise<Response> {
       )
       .join(" | ")}`,
   );
-  if (raw.length !== products.length || llmScores?.size) {
+  if (raw.length !== products.length || rerankScores?.size) {
     logger.info(
-      `[RITU][RANK] hybrid: raw ${raw.length} -> llm filtered ${llmScores?.size ?? 0} -> final ${products.length}`,
+      `[RITU][RANK] hybrid: raw ${raw.length} -> reranked ${rerankScores?.size ?? 0} -> final ${products.length}`,
     );
   }
   if (products.length > 0)

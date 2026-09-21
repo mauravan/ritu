@@ -60,7 +60,6 @@ function translateReason(r: string, dict: typeof en): string {
   if (r.startsWith("Matches:")) return r.replace("Matches:", dict.matches_prefix);
   if (r.startsWith("Price CHF")) return r.replace("Price CHF", dict.price_chf_prefix);
   if (r.startsWith("Condition:")) return r.replace("Condition:", dict.condition_prefix);
-  if (r.startsWith("LLM:")) return r.replace("LLM:", dict.llm_prefix);
   return r;
 }
 
@@ -195,7 +194,7 @@ const ProductItem = memo(function ProductItem({
           {hasRelevance && (
             <div
               className="flex items-center gap-2 text-xs"
-              title="LLM relevance 0-100; <30 filtered as irrelevant"
+              title="AI relevance 0-100 from rerank model"
             >
               <span className="w-24 shrink-0 text-text-secondary">
                 {dict.ai_relevance_label}
@@ -212,7 +211,10 @@ const ProductItem = memo(function ProductItem({
           )}
 
           {hasHybrid && (
-            <div className="flex items-center gap-2 text-xs" title="0.55×spec + 0.45×AI">
+            <div
+              className="flex items-center gap-2 text-xs"
+              title="with AI: 0.35×spec + 0.25×value + 0.35×AI; without: 0.6×spec + 0.4×value"
+            >
               <span className="w-24 shrink-0 text-text-secondary">
                 {dict.hybrid_label}
                 <Tooltip titleKey="tooltip_hybrid_title" textKey="tooltip_hybrid_text" />
@@ -277,7 +279,7 @@ export default function ProductList({
   const dict = (dictionaries[locale] || dictionaries.de) as typeof en;
 
   const total = products.length;
-  const display = useMemo(() => (total === 0 ? [] : products.slice(0, 40)), [products, total]);
+  const display = useMemo(() => products, [products]);
 
   const mapped = useMemo(() => {
     return display.map((p, idx) => {
@@ -296,10 +298,7 @@ export default function ProductList({
   }
 
   const resultsPaneLabel = String(dict.pane_results ?? "results");
-  const countLabel =
-    total > 40
-      ? `01–${String(display.length).padStart(2, "0")} / ${total}`
-      : `01–${String(display.length).padStart(2, "0")}`;
+  const countLabel = `01–${String(display.length).padStart(2, "0")} / ${total}`;
 
   return (
     <div className="border border-border bg-panel rounded-[2px] overflow-hidden">
@@ -319,11 +318,6 @@ export default function ProductList({
           <span className="text-[11px] block text-text-primary">
             {dict.ranked_products_heading}
           </span>
-          {total > 40 && (
-            <span className="text-[10px] text-text-secondary block">
-              {dict.showing_top_40.replace("{total}", String(total))}
-            </span>
-          )}
         </div>
       </div>
 

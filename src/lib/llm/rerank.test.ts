@@ -1,16 +1,7 @@
-import { generateObject } from "ai";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { logger } from "../logger";
 import type { DerivedSpec, RawProduct } from "../types";
-import { getRerankConfig, rerankWithLLM } from "./rerank";
-
-vi.mock("ai", () => ({
-  generateObject: vi.fn(),
-}));
-
-vi.mock("@ai-sdk/openai", () => ({
-  createOpenAI: vi.fn(() => (model: string) => `mock-openai:${model}`),
-}));
+import { getRerankConfig, rerankWithModel } from "./rerank";
 
 const spec: DerivedSpec = {
   category: "laptop",
@@ -35,6 +26,18 @@ function mkProduct(id: string, title: string): RawProduct {
   };
 }
 
+function mockRerankOk(body: unknown, status = 200) {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: status >= 200 && status < 300,
+      status,
+      json: async () => body,
+      text: async () => (typeof body === "string" ? body : JSON.stringify(body)),
+    }),
+  );
+}
+
 describe("rerank", () => {
   describe("getRerankConfig", () => {
     afterEach(() => {
@@ -54,12 +57,12 @@ describe("rerank", () => {
     it("returns config when LLM_API_KEY is set", () => {
       vi.stubEnv("LLM_API_KEY", "test-key");
       vi.stubEnv("LLM_BASE_URL", "https://test.example.com");
-      vi.stubEnv("LLM_MODEL", "test-model");
+      vi.stubEnv("LLM_RERANK_MODEL", "test-rerank-model");
       const config = getRerankConfig();
       expect(config).not.toBeNull();
       expect(config?.apiKey).toBe("test-key");
       expect(config?.baseURL).toBe("https://test.example.com");
-      expect(config?.model).toBe("test-model");
+      expect(config?.model).toBe("test-rerank-model");
     });
 
     it("uses defaults when optional env vars not set", () => {
@@ -73,7 +76,7 @@ describe("rerank", () => {
       const config = getRerankConfig();
       expect(config).not.toBeNull();
       expect(config?.baseURL).toBe("https://openrouter.ai/api/v1");
-      expect(config?.model).toBe("openai/gpt-4o-mini");
+      expect(config?.model).toBe("voyageai/rerank-2.5");
       expect(config?.timeoutMs).toBe(15000);
       expect(config?.maxBatch).toBe(40);
     });
@@ -100,12 +103,12 @@ describe("rerank", () => {
       expect(config?.baseURL).toBe("https://base.example.com");
     });
 
-    it("falls back to LLM_MODEL when LLM_RERANK_MODEL not set", () => {
+    it("defaults to voyageai/rerank-2.5 when LLM_RERANK_MODEL not set", () => {
       vi.stubEnv("LLM_API_KEY", "test-key");
-      vi.stubEnv("LLM_MODEL", "base-model");
+      vi.stubEnv("LLM_MODEL", "some-chat-model");
       vi.stubEnv("LLM_RERANK_MODEL", undefined);
       const config = getRerankConfig();
-      expect(config?.model).toBe("base-model");
+      expect(config?.model).toBe("voyageai/rerank-2.5");
     });
 
     it("falls back to default timeout when env is 0", () => {
@@ -145,7 +148,7 @@ describe("rerank", () => {
     });
   });
 
-  describe("rerankWithLLM", () => {
+  describe("rerankWithModel", () => {
     beforeEach(() => {
       vi.clearAllMocks();
       vi.stubEnv("LLM_API_KEY", "test-key");
@@ -153,59 +156,66 @@ describe("rerank", () => {
 
     afterEach(() => {
       vi.unstubAllEnvs();
-      vi.useRealTimers();
+      vi.unstubAllGlobals();
     });
 
     it("returns empty map for empty products", async () => {
-      const result = await rerankWithLLM([], spec);
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+      const result = await rerankWithModel([], spec);
       expect(result.size).toBe(0);
-      expect(generateObject).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
     });
 
     it("returns empty map when no API key", async () => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
       vi.stubEnv("LLM_API_KEY", undefined);
-      const result = await rerankWithLLM([mkProduct("1", "laptop")], spec);
+      const result = await rerankWithModel([mkProduct("1", "laptop")], spec);
       expect(result.size).toBe(0);
-      expect(generateObject).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
     });
 
     it("returns mapped results with clamped relevance", async () => {
-      vi.mocked(generateObject).mockResolvedValue({
-        object: {
-          results: [
-            { id: "1", relevance: 95, relevant: true, reason: "great match" },
-            { id: "2", relevance: 150, relevant: true, reason: "over max" },
-            { id: "3", relevance: -10, relevant: false, reason: "under min" },
-          ],
-        },
-      } as never);
+      mockRerankOk({
+        results: [
+          { index: 0, relevance_score: 0.95 },
+          { index: 1, relevance_score: 1.5 },
+          { index: 2, relevance_score: -0.1 },
+        ],
+      });
 
-      const result = await rerankWithLLM(
+      const result = await rerankWithModel(
         [mkProduct("1", "laptop"), mkProduct("2", "laptop 2"), mkProduct("3", "sleeve")],
         spec,
       );
 
       expect(result.size).toBe(3);
-      expect(result.get("1")).toMatchObject({ relevance: 95, relevant: true });
+      expect(result.get("1")).toMatchObject({ id: "1", relevance: 95 });
       expect(result.get("2")?.relevance).toBe(100);
       expect(result.get("3")?.relevance).toBe(0);
     });
 
-    it("warns and returns empty map when LLM returns zero results", async () => {
+    it("warns and returns empty map when reranker returns zero results", async () => {
       const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
-      vi.mocked(generateObject).mockResolvedValue({
-        object: { results: [] },
-      } as never);
-      const result = await rerankWithLLM([mkProduct("1", "laptop")], spec);
+      mockRerankOk({ results: [] });
+      const result = await rerankWithModel([mkProduct("1", "laptop")], spec);
       expect(result.size).toBe(0);
       expect(warn).toHaveBeenCalledWith(expect.stringContaining("returned 0/1"));
       warn.mockRestore();
     });
 
-    it("returns empty map on generic error", async () => {
+    it("returns empty map on HTTP error", async () => {
       const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
-      vi.mocked(generateObject).mockRejectedValue(new Error("bad gateway"));
-      const result = await rerankWithLLM([mkProduct("1", "laptop")], spec);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({
+          ok: false,
+          status: 502,
+          text: async () => "bad gateway",
+        }),
+      );
+      const result = await rerankWithModel([mkProduct("1", "laptop")], spec);
       expect(result.size).toBe(0);
       expect(warn).toHaveBeenCalledWith(expect.stringContaining("rerank failed"));
       warn.mockRestore();
@@ -213,12 +223,11 @@ describe("rerank", () => {
 
     it("returns empty map on timeout", async () => {
       const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
-      vi.stubEnv("LLM_RERANK_TIMEOUT_MS", "1000");
-      vi.useFakeTimers();
-      vi.mocked(generateObject).mockImplementation(() => new Promise(() => {}) as never);
-      const promise = rerankWithLLM([mkProduct("1", "laptop")], spec);
-      await vi.advanceTimersByTimeAsync(1500);
-      const result = await promise;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockRejectedValue(Object.assign(new Error("aborted"), { name: "TimeoutError" })),
+      );
+      const result = await rerankWithModel([mkProduct("1", "laptop")], spec);
       expect(result.size).toBe(0);
       expect(warn).toHaveBeenCalledWith(expect.stringContaining("timeout"));
       warn.mockRestore();
@@ -226,44 +235,44 @@ describe("rerank", () => {
 
     it("caps products to maxBatch", async () => {
       vi.stubEnv("LLM_RERANK_MAX_BATCH", "2");
-      vi.mocked(generateObject).mockResolvedValue({
-        object: {
-          results: [
-            { id: "1", relevance: 90, relevant: true, reason: "match" },
-            { id: "2", relevance: 80, relevant: true, reason: "match" },
-          ],
-        },
-      } as never);
+      mockRerankOk({
+        results: [
+          { index: 0, relevance_score: 0.9 },
+          { index: 1, relevance_score: 0.8 },
+        ],
+      });
 
       const products = [mkProduct("1", "a"), mkProduct("2", "b"), mkProduct("3", "c")];
-      await rerankWithLLM(products, spec);
+      await rerankWithModel(products, spec);
 
-      const call = vi.mocked(generateObject).mock.calls[0][0] as {
-        prompt: string;
-      };
-      expect(call.prompt).not.toContain('id="3"');
-      expect(call.prompt).toContain('id="1"');
-      expect(call.prompt).toContain('id="2"');
+      const [, opts] = vi.mocked(fetch).mock.calls[0] as [string, { body: string }];
+      const body = JSON.parse(opts.body) as { documents: string[]; top_n: number };
+      expect(body.documents).toHaveLength(2);
+      expect(body.top_n).toBe(2);
     });
 
-    it("uses 'none' when spec has no requirements", async () => {
-      vi.mocked(generateObject).mockResolvedValue({
-        object: {
-          results: [{ id: "1", relevance: 90, relevant: true, reason: "match" }],
-        },
-      } as never);
+    it("builds query with requirements", async () => {
+      mockRerankOk({ results: [{ index: 0, relevance_score: 0.9 }] });
+      await rerankWithModel([mkProduct("1", "laptop")], spec);
+      const [, opts] = vi.mocked(fetch).mock.calls[0] as [string, { body: string }];
+      const body = JSON.parse(opts.body) as { query: string };
+      expect(body.query).toContain("Requirements: cpu: i7 (required)");
+    });
+
+    it("omits requirements section when spec has no requirements", async () => {
+      mockRerankOk({ results: [{ index: 0, relevance_score: 0.9 }] });
       const noReqSpec: DerivedSpec = { ...spec, requirements: [] };
-      await rerankWithLLM([mkProduct("1", "laptop")], noReqSpec);
-      const call = vi.mocked(generateObject).mock.calls[0][0] as {
-        prompt: string;
-      };
-      expect(call.prompt).toContain("Requirements: none");
+      await rerankWithModel([mkProduct("1", "laptop")], noReqSpec);
+      const [, opts] = vi.mocked(fetch).mock.calls[0] as [string, { body: string }];
+      const body = JSON.parse(opts.body) as { query: string };
+      expect(body.query).not.toContain("Requirements:");
     });
+
     it("handles error without stack", async () => {
       const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
       const err = Object.create(Error.prototype) as Error;
-      vi.mocked(generateObject).mockRejectedValue(err);
-      const result = await rerankWithLLM([mkProduct("1", "laptop")], spec);
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue(err));
+      const result = await rerankWithModel([mkProduct("1", "laptop")], spec);
       expect(result.size).toBe(0);
       expect(warn).toHaveBeenCalledWith(expect.stringContaining("stack="));
       warn.mockRestore();
@@ -271,52 +280,11 @@ describe("rerank", () => {
 
     it("handles non-Error rejection", async () => {
       const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
-      vi.mocked(generateObject).mockRejectedValue({ status: 500 });
-      const result = await rerankWithLLM([mkProduct("1", "laptop")], spec);
+      vi.stubGlobal("fetch", vi.fn().mockRejectedValue({ status: 500 }));
+      const result = await rerankWithModel([mkProduct("1", "laptop")], spec);
       expect(result.size).toBe(0);
       expect(warn).toHaveBeenCalledWith(expect.stringContaining("rerank failed"));
       warn.mockRestore();
-    });
-
-    it("maps fulfillsRequired default true and false from LLM", async () => {
-      vi.mocked(generateObject).mockResolvedValue({
-        object: {
-          results: [
-            { id: "1", relevance: 95, relevant: true, reason: "ok" },
-            {
-              id: "2",
-              relevance: 5,
-              relevant: false,
-              reason: "fails",
-              fulfillsRequired: false,
-            },
-          ],
-        },
-      } as never);
-      const result = await rerankWithLLM(
-        [mkProduct("1", "laptop"), mkProduct("2", "laptop")],
-        spec,
-      );
-      expect(result.get("1")?.fulfillsRequired).toBe(true);
-      expect(result.get("2")?.fulfillsRequired).toBe(false);
-    });
-    it("marks wrong category with fulfillsRequired false", async () => {
-      vi.mocked(generateObject).mockResolvedValue({
-        object: {
-          results: [
-            {
-              id: "3",
-              relevance: 5,
-              relevant: false,
-              reason: "wrong category",
-              fulfillsRequired: false,
-            },
-          ],
-        },
-      } as never);
-      const result = await rerankWithLLM([mkProduct("3", "DDR4 32GB RAM Module")], spec);
-      expect(result.get("3")?.fulfillsRequired).toBe(false);
-      expect(result.get("3")?.relevant).toBe(false);
     });
   });
 });

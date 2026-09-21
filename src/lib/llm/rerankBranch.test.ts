@@ -1,12 +1,6 @@
-import { generateObject } from "ai";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DerivedSpec, RawProduct } from "../types";
 import { runOptionalRerank } from "./rerank";
-
-vi.mock("ai", () => ({ generateObject: vi.fn() }));
-vi.mock("@ai-sdk/openai", () => ({
-  createOpenAI: vi.fn(() => (model: string) => `mock-openai:${model}`),
-}));
 
 const spec: DerivedSpec = {
   category: "laptop",
@@ -38,7 +32,7 @@ describe("rerank branch extensions", () => {
   });
   afterEach(() => {
     vi.unstubAllEnvs();
-    vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 
   it("runOptionalRerank returns undefined without key", async () => {
@@ -48,15 +42,19 @@ describe("rerank branch extensions", () => {
 
   it("runOptionalRerank returns map on success", async () => {
     vi.stubEnv("LLM_RERANK_MAX_BATCH", "1");
-    vi.mocked(generateObject).mockResolvedValue({
-      object: { results: [{ id: "1", relevance: 90, relevant: true, reason: "fit" }] },
-    } as never);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ results: [{ index: 0, relevance_score: 0.9 }] }),
+      }),
+    );
     const out = await runOptionalRerank([mkProduct("1", "laptop"), mkProduct("2", "laptop")], spec);
     expect(out?.size).toBe(1);
   });
 
-  it("runOptionalRerank returns undefined when inner throws non-Error", async () => {
-    vi.mocked(generateObject).mockRejectedValue("plain string error");
+  it("runOptionalRerank returns empty map when inner throws non-Error", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue("plain string error"));
     const out = await runOptionalRerank([mkProduct("1", "laptop")], spec);
     expect(out?.size ?? 0).toBe(0);
   });

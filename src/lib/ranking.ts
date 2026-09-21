@@ -127,7 +127,7 @@ export function tagExplanation(tag: Tag): string {
     case "balanced":
       return "Best harmonic mean of spec & value among untagged";
     case "best overall":
-      return "Highest unified hybrid score (LLM + spec + value)";
+      return "Highest unified hybrid score (AI + spec + value)";
     default:
       return tag;
   }
@@ -136,7 +136,7 @@ export function tagExplanation(tag: Tag): string {
 export function rankProductsUnified(
   products: RawProduct[],
   spec: DerivedSpec,
-  llmScores?: Map<string, import("./llm/rerank").RerankResult>,
+  rerankScores?: Map<string, import("./llm/rerank").RerankResult>,
 ): RankedProduct[] {
   let weights: Record<string, number> = {};
   try {
@@ -145,17 +145,10 @@ export function rankProductsUnified(
   } catch {
     weights = {};
   }
-  const candidates =
-    llmScores && llmScores.size > 0
-      ? products.filter((p) => {
-          const s = llmScores.get(p.id);
-          if (!s) return true;
-          return s.relevant !== false && s.fulfillsRequired !== false;
-        })
-      : products;
-  const numericFilterResult = applyNumericFilter(candidates, spec);
-  const filteredCandidates = numericFilterResult.included;
-  const numericPenalties = numericFilterResult.penalties;
+  const candidates = products;
+  // Display-all mode: numeric mismatches only penalize scores; nothing is excluded.
+  const numericPenalties = applyNumericFilter(candidates, spec).penalties;
+  const filteredCandidates = candidates;
   // 2. Compute specScore (same logic as rankProducts)
   const keywords = keywordsFromSpec(spec);
   const requirementTokens = spec.requirements.map((r) => ({
@@ -250,44 +243,37 @@ export function rankProductsUnified(
     };
   });
 
-  // 4. llmScore
-  const hasLLM = llmScores && llmScores.size > 0;
-  const llmEntries = hasLLM
-    ? scaledResults.map((w) => {
-        const s = llmScores?.get(w.product.id);
-        if (s && s.relevant !== false && s.relevance >= 30) {
-          return s.relevance;
-        }
-        return 0;
-      })
+  // 4. rerank score
+  const hasRerank = rerankScores && rerankScores.size > 0;
+  const rerankEntries = hasRerank
+    ? scaledResults.map((w) => rerankScores?.get(w.product.id)?.relevance ?? 0)
     : scaledResults.map(() => 0);
 
   // 5. Weights
   const specW = 0.35;
   const valueW = 0.25;
-  let llmW: number;
+  let rerankW: number;
   let finalSpecW = specW;
   let finalValueW = valueW;
 
-  if (hasLLM) {
-    llmW = 1 - specW - valueW;
+  if (hasRerank) {
+    rerankW = 1 - specW - valueW;
   } else {
-    // Redistribute when LLM absent
+    // Redistribute when rerank absent
     finalSpecW = 0.6;
     finalValueW = 0.4;
-    llmW = 0;
+    rerankW = 0;
   }
 
   // 6. Hybrid score and sort
   const enriched = scaledResults.map((w, idx) => {
-    const llmScore = llmEntries[idx] as number;
+    const rerankScore = rerankEntries[idx] as number;
     const specScore = w.specScore;
     const valueScore = w.valueScore;
     const hybridScore = Math.round(
-      finalSpecW * specScore + finalValueW * valueScore + llmW * llmScore,
+      finalSpecW * specScore + finalValueW * valueScore + rerankW * rerankScore,
     );
-    const relevance = hasLLM ? llmScores?.get(w.product.id)?.relevance : undefined;
-    const llmReason = hasLLM ? llmScores?.get(w.product.id)?.reason : undefined;
+    const relevance = hasRerank ? rerankScores?.get(w.product.id)?.relevance : undefined;
     return {
       ...w.product,
       specScore: Math.round(specScore),
@@ -296,7 +282,6 @@ export function rankProductsUnified(
       reasons: [] as string[],
       tags: [] as Tag[],
       relevance,
-      llmReason,
       hybridScore,
     };
   });
@@ -314,8 +299,6 @@ export function rankProductsUnified(
       r.reasons.push(`Matches: ${r.matchedRequirements.join(", ")}`);
     if (r.priceChf !== null) r.reasons.push(`Price CHF ${r.priceChf}`);
     if (r.condition) r.reasons.push(`Condition: ${r.condition}`);
-    // Add LLM reason if present
-    if (r.llmReason) r.reasons.push(`LLM: ${r.llmReason}`);
   }
 
   // 8. Tags
