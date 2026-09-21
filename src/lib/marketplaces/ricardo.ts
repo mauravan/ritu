@@ -49,7 +49,7 @@ export async function searchRicardo(query: string, limit = 20): Promise<RawProdu
       title,
       priceChf,
       bidPriceChf: listing.bidPrice != null ? Number(listing.bidPrice) / 100 : null,
-      listedPriceChf: priceChf,
+      listedPriceChf: listing.buyNowPrice != null ? Number(listing.buyNowPrice) / 100 : null,
       currency: "CHF" as const,
       condition: null,
       imageUrl: typeof imageUrl === "string" ? imageUrl.replace("t_265x200", "t_800x600") : null,

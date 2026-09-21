@@ -30,6 +30,7 @@ describe("searchRicardo mapping branches", () => {
     const out = await searchRicardo("mini pc", 5);
     expect(out[0]?.priceChf).toBe(50);
     expect(out[0]?.bidPriceChf).toBe(50);
+    expect(out[0]?.listedPriceChf).toBeNull();
     expect(out[0]?.imageUrl).toContain("t_800x600");
     expect(out[0]?.location).toBe("Bern");
     expect(out[0]?.zipCode).toBe("3000");

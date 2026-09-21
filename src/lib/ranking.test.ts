@@ -102,7 +102,7 @@ describe("ranking", () => {
       expect(tagExplanation("best condition")).toBe("Best condition 'new/neu' among specScore≥50");
       expect(tagExplanation("balanced")).toBe("Best harmonic mean of spec & value among untagged");
       expect(tagExplanation("best overall")).toBe(
-        "Highest unified hybrid score (LLM + spec + value)",
+        "Highest unified hybrid score (AI + spec + value)",
       );
     });
 
@@ -186,23 +186,16 @@ describe("ranking", () => {
         makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800 }),
         makeProduct({ id: "2", title: "i7 16gb laptop", priceChf: 500 }),
       ];
-      const llmScores = new Map<
-        string,
-        { id: string; relevance: number; relevant: boolean; reason: string }
-      >();
-      llmScores.set("1", {
+      const rerankScores = new Map<string, { id: string; relevance: number }>();
+      rerankScores.set("1", {
         id: "1",
         relevance: 95,
-        relevant: true,
-        reason: "excellent match",
       });
-      llmScores.set("2", {
+      rerankScores.set("2", {
         id: "2",
         relevance: 30,
-        relevant: false,
-        reason: "weak match",
       });
-      const result = rankProductsUnified(products, baseSpec, llmScores);
+      const result = rankProductsUnified(products, baseSpec, rerankScores);
       expect(result[0].id).toBe("1");
       expect(result[0].relevance).toBe(95);
     });
@@ -355,29 +348,25 @@ describe("ranking", () => {
       expect(result[0].matchedRequirements).toContain("cpu: i7");
     });
 
-    it("uses LLM relevance with relevant=false filtered to 0", () => {
+    it("keeps low-relevance products, sinks them", () => {
       const products = [
         makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 800 }),
         makeProduct({ id: "2", title: "i7 16gb laptop", priceChf: 500 }),
       ];
-      const llmScores = new Map<
-        string,
-        { id: string; relevance: number; relevant: boolean; reason: string }
-      >();
-      llmScores.set("1", {
+      const rerankScores = new Map<string, { id: string; relevance: number }>();
+      rerankScores.set("1", {
         id: "1",
         relevance: 95,
-        relevant: true,
-        reason: "match",
       });
-      llmScores.set("2", {
+      rerankScores.set("2", {
         id: "2",
-        relevance: 50,
-        relevant: false,
-        reason: "irrelevant",
+        relevance: 5,
       });
-      const result = rankProductsUnified(products, baseSpec, llmScores);
-      expect(result).toHaveLength(1);
+      const result = rankProductsUnified(products, baseSpec, rerankScores);
+      expect(result).toHaveLength(2);
+      expect(result[0].id).toBe("1");
+      expect(result[1].id).toBe("2");
+      expect(result[1].relevance).toBe(5);
     });
 
     it("handles single product with price null", () => {
@@ -453,7 +442,7 @@ describe("ranking", () => {
       expect(result).toHaveLength(2);
     });
 
-    it("drops products LLM marks as failing required specs", () => {
+    it("does not drop low-rerank products", () => {
       const products = [
         {
           id: "1",
@@ -482,36 +471,18 @@ describe("ranking", () => {
       ];
       const spec = {
         ...baseSpec,
-        requirements: [{ key: "ram", value: "32gb", importance: "required" as const }],
+        requirements: [{ key: "ram", value: "32gb", importance: "preferred" as const }],
       };
-      const llmScores = new Map([
-        [
-          "1",
-          {
-            id: "1",
-            relevance: 5,
-            relevant: false,
-            reason: "fails",
-            fulfillsRequired: false,
-          },
-        ],
-        [
-          "2",
-          {
-            id: "2",
-            relevance: 95,
-            relevant: true,
-            reason: "match",
-            fulfillsRequired: true,
-          },
-        ],
+      const rerankScores = new Map([
+        ["1", { id: "1", relevance: 5 }],
+        ["2", { id: "2", relevance: 95 }],
       ]);
       const result = rankProductsUnified(
         products as unknown as Parameters<typeof rankProductsUnified>[0],
         spec,
-        llmScores,
+        rerankScores,
       );
-      expect(result).toHaveLength(1);
+      expect(result).toHaveLength(2);
       expect(result[0].id).toBe("2");
     });
   });

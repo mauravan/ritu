@@ -169,4 +169,52 @@ describe("SearchView branches", () => {
     await search();
     await waitFor(() => expect(screen.getByText(/network down/)).toBeDefined());
   });
+
+  it("returns clarifying question on askQuestion path", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+        const s = String(input instanceof Request ? input.url : input);
+        if (s.includes("/api/search/derive")) {
+          return new Response(JSON.stringify({ derivedSpec: SPEC }), { status: 200 });
+        }
+        if (JSON.parse(String(init?.body ?? "{}")).askQuestion === true) {
+          return new Response(JSON.stringify({ clarifyingQuestion: "What size?" }), {
+            status: 200,
+          });
+        }
+        return new Response(JSON.stringify(RESULT), { status: 200 });
+      }),
+    );
+    render(<SearchView />);
+    fireEvent.change(screen.getByRole("textbox", { name: /what are you looking for/i }), {
+      target: { value: "mini pc" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /search with question/i }));
+    await waitFor(() => expect(screen.getByText("What size?")).toBeDefined());
+  });
+
+  it("shows error on askQuestion failure", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+        const s = String(input instanceof Request ? input.url : input);
+        if (s.includes("/api/search/derive")) {
+          return new Response(JSON.stringify({ derivedSpec: SPEC }), { status: 200 });
+        }
+        if (JSON.parse(String(init?.body ?? "{}")).askQuestion === true) {
+          return new Response(JSON.stringify({ error: "spec_derivation_failed" }), {
+            status: 502,
+          });
+        }
+        return new Response(JSON.stringify(RESULT), { status: 200 });
+      }),
+    );
+    render(<SearchView />);
+    fireEvent.change(screen.getByRole("textbox", { name: /what are you looking for/i }), {
+      target: { value: "mini pc" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /search with question/i }));
+    await waitFor(() => expect(screen.getByText(/spec_derivation_failed/)).toBeDefined());
+  });
 });

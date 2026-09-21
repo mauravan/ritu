@@ -39,7 +39,6 @@ export type RankedProduct = RawProduct & {
   matchedRequirements: string[];
   reasons: string[];
   relevance?: number;
-  llmReason?: string;
   hybridScore?: number;
 };
 

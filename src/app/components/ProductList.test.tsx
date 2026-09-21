@@ -149,16 +149,26 @@ describe("ProductList", () => {
     expect(html).toContain("Price unavailable");
   });
 
-  it("translates condition and LLM reasons", () => {
+  it("translates condition reasons", () => {
     const p = mkRanked({
       id: "1",
       title: "Test Product",
-      reasons: ["Condition: new", "LLM: great fit"],
+      reasons: ["Condition: new"],
     });
     const html = renderList([p]);
     expect(html).toContain("Condition:");
-    expect(html).toContain("LLM:");
-    expect(html).toContain("great fit");
+  });
+
+  it("renders untranslated reasons as-is", () => {
+    const p = mkRanked({
+      id: "1",
+      title: "Test Product",
+      reasons: ["Matches: cpu: i7", "Price CHF 500", "Custom note xyz"],
+    });
+    const html = renderList([p]);
+    expect(html).toContain("Matches:");
+    expect(html).toContain("Price CHF 500");
+    expect(html).toContain("Custom note xyz");
   });
 
   it("renders ricardo bid-only and listed-only prices", () => {
@@ -172,6 +182,7 @@ describe("ProductList", () => {
       }),
     ]);
     expect(bidOnly).toContain("CHF 30 bid");
+    expect(bidOnly).not.toContain("listed");
     const listedOnly = renderList([
       mkRanked({
         id: "l",
@@ -182,15 +193,22 @@ describe("ProductList", () => {
       }),
     ]);
     expect(listedOnly).toContain("CHF 80 listed");
+    expect(listedOnly).not.toContain("bid");
   });
 
-  it("renders showing top N message when > 40 products", () => {
+  it("renders nothing extra for empty requirements and reasons", () => {
+    const p = mkRanked({ id: "1", title: "Lens" });
+    const html = renderList([p]);
+    expect(html).toContain("Lens");
+    expect(html).not.toContain("cpu: i7");
+  });
+
+  it("renders all products when > 40 products", () => {
     const products = Array.from({ length: 45 }, (_, i) =>
       mkRanked({ id: String(i), title: `Product ${i}` }),
     );
     const html = renderList(products);
-    expect(html).toContain("Showing top");
-    expect(html).toContain("40");
+    expect(html).toContain("Product 44");
     expect(html).toContain("45");
   });
 
