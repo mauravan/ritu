@@ -4,7 +4,7 @@ import Image from "next/image";
 import { memo, useMemo } from "react";
 import de from "@/dictionaries/de.json";
 import en from "@/dictionaries/en.json";
-import type { RankedProduct, Tag, SortBy, SortDir } from "@/lib/types";
+import type { RankedProduct, SortBy, SortDir, Tag } from "@/lib/types";
 import ListingDescription from "./ListingDescription";
 import SortSelect from "./SortSelect";
 import Tooltip from "./Tooltip";
