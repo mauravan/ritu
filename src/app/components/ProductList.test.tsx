@@ -27,6 +27,16 @@ function mkRanked(
     ...overrides,
   } as RankedProduct;
 }
+function renderList(products: RankedProduct[]) {
+  return renderToString(
+    <ProductList
+      products={products}
+      sortBy="hybrid"
+      sortDir="desc"
+      onSortChange={() => undefined}
+    />,
+  );
+}
 
 describe("ProductList", () => {
   it("renders hybrid and AI relevance bars", () => {
@@ -39,7 +49,7 @@ describe("ProductList", () => {
       hybridScore: 82,
       tags: ["best specs"],
     });
-    const html = renderToString(<ProductList products={[p]} />);
+    const html = renderList([p]);
     expect(html).toContain("AI relevance");
     expect(html).toContain("Hybrid");
     expect(html).toContain("best specs");
@@ -47,7 +57,7 @@ describe("ProductList", () => {
 
   it("renders original description disclosure", () => {
     const p = mkRanked({ id: "raw-test", title: "Raw listing" });
-    const html = renderToString(<ProductList products={[p]} />);
+    const html = renderList([p]);
     expect(html).toContain("Original description");
   });
 
@@ -58,13 +68,13 @@ describe("ProductList", () => {
       specScore: 40,
       valueScore: 30,
     });
-    const html = renderToString(<ProductList products={[p]} />);
-    expect(html).not.toContain("Hybrid");
+    const html = renderList([p]);
+    expect(html).not.toContain("Hybrid score");
     expect(html).not.toContain("AI relevance");
   });
 
   it("renders empty state message", () => {
-    const html = renderToString(<ProductList products={[]} />);
+    const html = renderList([]);
     expect(html).toContain("No products found");
   });
   it("renders image error fallback", () => {
@@ -73,7 +83,7 @@ describe("ProductList", () => {
       title: "Test Product",
       imageUrl: "https://example.com/image.jpg",
     });
-    const html = renderToString(<ProductList products={[p]} />);
+    const html = renderList([p]);
     expect(html).toContain("No image");
     // onError handler not rendered in SSR
   });
@@ -85,7 +95,7 @@ describe("ProductList", () => {
       matchedRequirements: ["cpu: i7", "ram: 16gb"],
       reasons: ["Matches: cpu: i7, ram: 16gb", "Price CHF 100"],
     });
-    const html = renderToString(<ProductList products={[p]} />);
+    const html = renderList([p]);
     expect(html).toContain("cpu: i7");
     expect(html).toContain("ram: 16gb");
     expect(html).toContain("Matches:");
@@ -98,7 +108,7 @@ describe("ProductList", () => {
       title: "Test Product",
       tags: ["best value", "cheapest", "best specs"],
     });
-    const html = renderToString(<ProductList products={[p]} />);
+    const html = renderList([p]);
     expect(html).toContain("best value");
     expect(html).toContain("cheapest");
     expect(html).toContain("best specs");
@@ -111,7 +121,7 @@ describe("ProductList", () => {
       condition: "new",
       location: "Zurich",
     });
-    const html = renderToString(<ProductList products={[p]} />);
+    const html = renderList([p]);
     expect(html).toContain("new");
     expect(html).toContain("Zurich");
   });
@@ -124,7 +134,7 @@ describe("ProductList", () => {
       bidPriceChf: 50,
       listedPriceChf: 100,
     });
-    const html = renderToString(<ProductList products={[p]} />);
+    const html = renderList([p]);
     expect(html).toContain("CHF 50 bid");
     expect(html).toContain("CHF 100 listed");
   });
@@ -135,7 +145,7 @@ describe("ProductList", () => {
       title: "Test Product",
       priceChf: null,
     });
-    const html = renderToString(<ProductList products={[p]} />);
+    const html = renderList([p]);
     expect(html).toContain("Price unavailable");
   });
 
@@ -143,7 +153,7 @@ describe("ProductList", () => {
     const products = Array.from({ length: 45 }, (_, i) =>
       mkRanked({ id: String(i), title: `Product ${i}` }),
     );
-    const html = renderToString(<ProductList products={products} />);
+    const html = renderList(products);
     expect(html).toContain("Showing top");
     expect(html).toContain("40");
     expect(html).toContain("45");
@@ -153,7 +163,7 @@ describe("ProductList", () => {
     const products = Array.from({ length: 5 }, (_, i) =>
       mkRanked({ id: String(i), title: `Product ${i}` }),
     );
-    const html = renderToString(<ProductList products={products} />);
+    const html = renderList(products);
     expect(html).toContain("Ranked Products");
   });
 });

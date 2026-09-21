@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import de from "@/dictionaries/de.json";
 import en from "@/dictionaries/en.json";
-import type { DerivedSpec, Platform, SearchResult } from "@/lib/types";
+import { sortProducts } from "@/lib/sort";
+import type { DerivedSpec, Platform, SearchResult, SortBy, SortDir } from "@/lib/types";
 import ProductList from "./ProductList";
 import QueryList from "./QueryList";
 import SearchForm from "./SearchForm";
@@ -19,6 +20,9 @@ export default function SearchView() {
   const [derivedSpec, setDerivedSpec] = useState<DerivedSpec | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<SortBy>("hybrid");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [zipCode, setZipCode] = useState("");
   const resultsRef = useRef<HTMLDivElement>(null);
 
   const handleSearch = async (
@@ -29,6 +33,8 @@ export default function SearchView() {
       clarifyingAnswer?: string;
       clarifyingQuestion?: string;
       originalQuery?: string;
+      zipCode?: string;
+      radius?: number;
     },
   ): Promise<SearchResult | { clarifyingQuestion: string } | undefined> => {
     console.log(`[RITU][CLIENT] search start query="${query}" platform=${platform}`);
@@ -160,10 +166,20 @@ export default function SearchView() {
       setIsLoading(false);
     }
   };
+  const sorted = useMemo(
+    () => sortProducts(result?.products ?? [], sortBy, sortDir),
+    [result, sortBy, sortDir],
+  );
 
   return (
     <div className="space-y-6">
-      <SearchForm onSearch={handleSearch} isLoading={isLoading} error={error} />
+      <SearchForm
+        onSearch={handleSearch}
+        isLoading={isLoading}
+        error={error}
+        zipCode={zipCode}
+        onZipCodeChange={setZipCode}
+      />
 
       {(derivedSpec || result) && (
         <div ref={resultsRef} className="space-y-6">
@@ -174,7 +190,15 @@ export default function SearchView() {
               {/* Left on desktop, below products in DOM/mobile if needed or handled via CSS grid order */}
               {/* Plan: "Use CSS grid placement so desktop trace appears left while DOM/mobile order keeps products first." */}
               <div className="lg:col-start-2 lg:row-start-1">
-                <ProductList products={result.products} />
+                <ProductList
+                  products={sorted}
+                  sortBy={sortBy}
+                  sortDir={sortDir}
+                  onSortChange={(b, d) => {
+                    setSortBy(b);
+                    setSortDir(d);
+                  }}
+                />
                 {result.products.length === 0 && (
                   <div className="mt-4 p-3 border border-border bg-panel rounded-[2px]">
                     <p className="text-xs text-marketplace-accent">

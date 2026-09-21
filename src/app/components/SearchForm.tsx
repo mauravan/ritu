@@ -28,9 +28,17 @@ type Props = {
   ) => Promise<SearchResponse>;
   isLoading: boolean;
   error: string | null;
+  zipCode: string;
+  onZipCodeChange: (zip: string) => void;
 };
 
-export default function SearchForm({ onSearch, isLoading, error }: Props) {
+export default function SearchForm({
+  onSearch,
+  isLoading,
+  error,
+  zipCode,
+  onZipCodeChange,
+}: Props) {
   const [locale] = useLocale();
 
   const dict = dictionaries[locale] ?? dictionaries.de;
@@ -42,7 +50,6 @@ export default function SearchForm({ onSearch, isLoading, error }: Props) {
   const [awaitingClarification, setAwaitingClarification] = useState(false);
   const [clarifyingQuestion, setClarifyingQuestion] = useState("");
   const [clarifyingAnswer, setClarifyingAnswer] = useState("");
-  const [zipCode, setZipCode] = useState("");
   const [radius, setRadius] = useState(20);
   const [originalQuery, setOriginalQuery] = useState("");
   const runSubmit = async (askQuestionParam = false) => {
@@ -147,7 +154,7 @@ export default function SearchForm({ onSearch, isLoading, error }: Props) {
           />
 
           <div className="pt-2 border-t border-border flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="pane-legend text-xs font-medium text-text-secondary">
                 {filtersPaneLabel}
               </span>
@@ -165,7 +172,7 @@ export default function SearchForm({ onSearch, isLoading, error }: Props) {
                   type="text"
                   maxLength={4}
                   value={zipCode}
-                  onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  onChange={(e) => onZipCodeChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
                   className="w-16 rounded-[2px] border border-border bg-panel px-2 py-1 text-xs"
                 />
               </label>

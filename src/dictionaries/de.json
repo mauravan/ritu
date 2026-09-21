@@ -62,5 +62,14 @@
   "pane_filters": "filter",
   "pane_results": "ergebnisse",
   "pane_search_trace": "suchprotokoll",
-  "source_label": "quelle"
+  "source_label": "quelle",
+  "sort_label": "sort",
+  "sort_spec": "spez",
+  "sort_value": "wert",
+  "sort_hybrid": "hybrid",
+  "sort_price": "preis",
+  "sort_ai": "ki",
+  "sort_asc": "aufsteigend",
+  "sort_desc": "absteigend",
+  "sort_aria": "Nach {label} sortieren, {direction}"
 }
