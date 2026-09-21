@@ -159,6 +159,18 @@ describe("ProductList", () => {
     expect(html).toContain("Condition:");
   });
 
+  it("renders untranslated reasons as-is", () => {
+    const p = mkRanked({
+      id: "1",
+      title: "Test Product",
+      reasons: ["Matches: cpu: i7", "Price CHF 500", "Custom note xyz"],
+    });
+    const html = renderList([p]);
+    expect(html).toContain("Matches:");
+    expect(html).toContain("Price CHF 500");
+    expect(html).toContain("Custom note xyz");
+  });
+
   it("renders ricardo bid-only and listed-only prices", () => {
     const bidOnly = renderList([
       mkRanked({
@@ -182,6 +194,13 @@ describe("ProductList", () => {
     ]);
     expect(listedOnly).toContain("CHF 80 listed");
     expect(listedOnly).not.toContain("bid");
+  });
+
+  it("renders nothing extra for empty requirements and reasons", () => {
+    const p = mkRanked({ id: "1", title: "Lens" });
+    const html = renderList([p]);
+    expect(html).toContain("Lens");
+    expect(html).not.toContain("cpu: i7");
   });
 
   it("renders all products when > 40 products", () => {
