@@ -28,6 +28,7 @@ export type RawProduct = {
   bidPriceChf?: number | null;
   listedPriceChf?: number | null;
   location: string | null;
+  zipCode?: string | null;
   raw: unknown;
 };
 

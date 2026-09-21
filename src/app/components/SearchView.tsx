@@ -128,6 +128,8 @@ export default function SearchView() {
           clarifyingQuestion: extra?.clarifyingQuestion,
           originalQuery: extra?.originalQuery || query,
           derivedSpec: derivedForFull ?? undefined,
+          zipCode: extra?.zipCode,
+          radius: extra?.radius,
         }),
       });
       console.log(`[RITU][CLIENT] response status=${res.status}`);

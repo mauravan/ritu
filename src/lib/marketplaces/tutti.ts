@@ -10,15 +10,11 @@ export function buildTuttiUrl(query: string): string {
   return `https://www.tutti.ch/de/q/${encodeURIComponent(query)}`;
 }
 
-export async function searchTutti(
-  query: string,
-  limit = 20,
-  opts?: { zipCode?: string; radius?: number },
-): Promise<RawProduct[]> {
+export async function searchTutti(query: string, limit = 20): Promise<RawProduct[]> {
   logger.info(`[RITU][TUTTI] search query="${query}" limit=${limit}`);
   return withTuttiLimit(async () => {
     logger.info(`[RITU][TUTTI] withTuttiLimit start query="${query}"`);
-    const result = await withRetry(() => searchTuttiViaApi(query, limit, opts), "tutti");
+    const result = await withRetry(() => searchTuttiViaApi(query, limit), "tutti");
     logger.info(`[RITU][TUTTI] withTuttiLimit end query="${query}" result=${result.length}`);
     return result;
   });

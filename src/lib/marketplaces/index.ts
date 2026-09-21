@@ -1,11 +1,7 @@
 import type { RawProduct } from "../types";
 
 export interface MarketplaceAdapter {
-  search(
-    query: string,
-    limit?: number,
-    opts?: { zipCode?: string; radius?: number },
-  ): Promise<RawProduct[]>;
+  search(query: string, limit?: number): Promise<RawProduct[]>;
   buildUrl(query: string): string;
 }
 
