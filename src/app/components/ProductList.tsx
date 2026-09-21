@@ -4,8 +4,7 @@ import Image from "next/image";
 import { memo, useMemo } from "react";
 import de from "@/dictionaries/de.json";
 import en from "@/dictionaries/en.json";
-import { tagExplanation } from "@/lib/ranking";
-import type { RankedProduct, SortBy, SortDir } from "@/lib/types";
+import type { RankedProduct, Tag, SortBy, SortDir } from "@/lib/types";
 import ListingDescription from "./ListingDescription";
 import SortSelect from "./SortSelect";
 import Tooltip from "./Tooltip";
@@ -28,6 +27,26 @@ const tagClassMap: Record<string, string> = {
   balanced: "text-score-hybrid border-score-hybrid",
   "best overall": "text-score-overall border-score-overall",
 };
+const tagTooltipMap: Record<Tag, { titleKey: string; textKey: string }> = {
+  "best specs": {
+    titleKey: "tooltip_tag_best_specs_title",
+    textKey: "tooltip_tag_best_specs_text",
+  },
+  "best value": {
+    titleKey: "tooltip_tag_best_value_title",
+    textKey: "tooltip_tag_best_value_text",
+  },
+  cheapest: { titleKey: "tooltip_tag_cheapest_title", textKey: "tooltip_tag_cheapest_text" },
+  "best condition": {
+    titleKey: "tooltip_tag_best_condition_title",
+    textKey: "tooltip_tag_best_condition_text",
+  },
+  balanced: { titleKey: "tooltip_tag_balanced_title", textKey: "tooltip_tag_balanced_text" },
+  "best overall": {
+    titleKey: "tooltip_tag_best_overall_title",
+    textKey: "tooltip_tag_best_overall_text",
+  },
+};
 
 type DerivedItem = {
   p: RankedProduct;
@@ -48,7 +67,6 @@ function translateReason(r: string, dict: typeof en): string {
 const ProductItem = memo(function ProductItem({
   p,
   idx,
-  _total,
   hasHybrid,
   hasRelevance,
   dict,
@@ -136,8 +154,7 @@ const ProductItem = memo(function ProductItem({
                 >
                   {t}
                   <Tooltip
-                    titleKey="tooltip_tag_title"
-                    content={<span>{tagExplanation(t)}</span>}
+                    {...tagTooltipMap[t as Tag]}
                     buttonClass="ml-1 inline-flex items-center justify-center text-[10px] text-text-secondary hover:text-text-primary"
                   />
                 </span>
