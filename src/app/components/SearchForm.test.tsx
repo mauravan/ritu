@@ -169,3 +169,70 @@ describe("SearchForm edge cases", () => {
     }
   });
 });
+
+describe("SearchForm zip and radius inputs", () => {
+  beforeEach(() => {
+    window.localStorage.setItem("locale", "en");
+  });
+  afterEach(() => {
+    cleanup();
+    window.localStorage.clear();
+  });
+
+  it("strips non-digits from zip code", () => {
+    const spy = vi.fn((_z: string) => {});
+    render(
+      <SearchForm
+        onSearch={vi.fn(async () => undefined)}
+        isLoading={false}
+        error={null}
+        zipCode=""
+        onZipCodeChange={spy}
+      />,
+    );
+    const zip = screen.getByLabelText(/PLZ/) as HTMLInputElement;
+    fireEvent.change(zip, { target: { value: "8a0b0c" } });
+    expect(spy).toHaveBeenCalledWith("800");
+  });
+
+  it("passes zip and radius to onSearch on submit", async () => {
+    const onSearch = vi.fn(async () => undefined);
+    render(
+      <SearchForm
+        onSearch={onSearch}
+        isLoading={false}
+        error={null}
+        zipCode="8000"
+        onZipCodeChange={() => undefined}
+      />,
+    );
+    fireEvent.change(screen.getByRole("textbox", { name: /what are you looking for/i }), {
+      target: { value: "mini pc" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /search$/i }));
+    await waitFor(() =>
+      expect(onSearch).toHaveBeenCalledWith(
+        "mini pc",
+        "both",
+        expect.objectContaining({ zipCode: "8000", radius: 20 }),
+      ),
+    );
+  });
+
+  it("clamps radius input into 1-100", () => {
+    render(
+      <SearchForm
+        onSearch={vi.fn(async () => undefined)}
+        isLoading={false}
+        error={null}
+        zipCode=""
+        onZipCodeChange={() => undefined}
+      />,
+    );
+    const radius = screen.getByLabelText(/Radius/) as HTMLInputElement;
+    fireEvent.change(radius, { target: { value: "500" } });
+    expect(radius.value).toBe("100");
+    fireEvent.change(radius, { target: { value: "-5" } });
+    expect(radius.value).toBe("1");
+  });
+});

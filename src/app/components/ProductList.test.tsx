@@ -149,6 +149,41 @@ describe("ProductList", () => {
     expect(html).toContain("Price unavailable");
   });
 
+  it("translates condition and LLM reasons", () => {
+    const p = mkRanked({
+      id: "1",
+      title: "Test Product",
+      reasons: ["Condition: new", "LLM: great fit"],
+    });
+    const html = renderList([p]);
+    expect(html).toContain("Condition:");
+    expect(html).toContain("LLM:");
+    expect(html).toContain("great fit");
+  });
+
+  it("renders ricardo bid-only and listed-only prices", () => {
+    const bidOnly = renderList([
+      mkRanked({
+        id: "b",
+        title: "Bid",
+        marketplace: "ricardo",
+        bidPriceChf: 30,
+        listedPriceChf: null,
+      }),
+    ]);
+    expect(bidOnly).toContain("CHF 30 bid");
+    const listedOnly = renderList([
+      mkRanked({
+        id: "l",
+        title: "Listed",
+        marketplace: "ricardo",
+        bidPriceChf: null,
+        listedPriceChf: 80,
+      }),
+    ]);
+    expect(listedOnly).toContain("CHF 80 listed");
+  });
+
   it("renders showing top N message when > 40 products", () => {
     const products = Array.from({ length: 45 }, (_, i) =>
       mkRanked({ id: String(i), title: `Product ${i}` }),

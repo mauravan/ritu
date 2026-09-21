@@ -7,12 +7,16 @@ export default {
   },
   test: {
     environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
       thresholds: {
-        branches: { "src/lib/**": 80, global: 80 },
-        statements: { "src/lib/**": 80, global: 80 },
+        "src/lib/**": { branches: 80, statements: 80 },
+        "src/app/components/**": { branches: 80, statements: 80 },
+        "src/app/api/**": { branches: 80, statements: 80 },
+        branches: 80,
+        statements: 80,
       },
     },
   },
