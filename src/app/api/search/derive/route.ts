@@ -6,9 +6,9 @@ import { parseSearchRequest } from "@/lib/parseSearchRequest";
 export async function POST(req: Request): Promise<Response> {
   const parsed = await parseSearchRequest(req);
   if (!parsed.ok) return parsed.errorResponse;
-  const { query, clarifyingAnswer } = parsed.data;
+  const { query, clarifyingAnswer, locale } = parsed.data;
   try {
-    const derivedSpec = await deriveSpecs(query, clarifyingAnswer);
+    const derivedSpec = await deriveSpecs(query, clarifyingAnswer, locale);
     return NextResponse.json({ derivedSpec });
   } catch (err) {
     if (err instanceof ValidationError) {

@@ -67,7 +67,7 @@ describe("search route contracts", () => {
     expect(json.queries.length).toBeGreaterThanOrEqual(1);
     expect(json.products.length).toBe(2);
     expect(deriveSpecs).toHaveBeenCalledOnce();
-    expect(deriveSpecs).toHaveBeenCalledWith("mini pc", undefined);
+    expect(deriveSpecs).toHaveBeenCalledWith("mini pc", undefined, "de");
   });
 
   it("askQuestion path returns clarifying question without searching", async () => {

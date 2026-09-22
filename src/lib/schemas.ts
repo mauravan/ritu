@@ -69,6 +69,7 @@ export const SearchRequestSchema = z.object({
   query: z.string().min(3).max(500),
   platform: z.enum(["both", "ricardo", "tutti"]).optional().default("both"),
   askQuestion: z.boolean().optional().default(false),
+  locale: z.enum(["de", "en"]).optional().default("de"),
   clarifyingAnswer: z.string().optional(),
   clarifyingQuestion: z.string().optional(),
   originalQuery: z.string().optional(),

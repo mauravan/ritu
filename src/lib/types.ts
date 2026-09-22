@@ -52,6 +52,8 @@ export type Tag =
 
 export type Platform = "both" | "ricardo" | "tutti";
 
+export type Locale = "de" | "en";
+
 export type SearchResult = {
   input: string;
   derivedSpec: DerivedSpec;

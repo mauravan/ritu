@@ -3,8 +3,8 @@ import { generateText, Output } from "ai";
 import { ValidationError } from "../errors";
 import { logger } from "../logger";
 import { DerivedSpecSchema } from "../schemas";
-import type { DerivedSpec } from "../types";
-import { SYSTEM_PROMPT } from "./prompt";
+import type { DerivedSpec, Locale } from "../types";
+import { getSystemPrompt } from "./prompt";
 
 const DEFAULT_FALLBACK_MODEL = "openai/gpt-oss-20b";
 const DERIVE_TIMEOUT_MS = 15_000;
@@ -33,7 +33,11 @@ function tryParseJsonFromText(text: string): unknown | null {
   return null;
 }
 
-export async function deriveSpecs(input: string, clarifyingAnswer?: string): Promise<DerivedSpec> {
+export async function deriveSpecs(
+  input: string,
+  clarifyingAnswer?: string,
+  locale: Locale = "de",
+): Promise<DerivedSpec> {
   const trimmedInput = input.trim();
   if (trimmedInput.length < 3) throw new ValidationError("Input too short (min 3 chars)");
   const trimmed = trimmedInput.slice(0, 500);
@@ -42,7 +46,7 @@ export async function deriveSpecs(input: string, clarifyingAnswer?: string): Pro
     : trimmed;
   const apiKey = process.env.LLM_API_KEY;
   const baseURL = process.env.LLM_BASE_URL || "https://openrouter.ai/api/v1";
-  const model = process.env.LLM_MODEL || "openai/gpt-4o-mini";
+  const model = process.env.LLM_MODEL || "google/gemma-4-31b-it:free";
   const fallbackModel = process.env.LLM_FALLBACK_MODEL || DEFAULT_FALLBACK_MODEL;
 
   if (!apiKey) {
@@ -61,13 +65,13 @@ export async function deriveSpecs(input: string, clarifyingAnswer?: string): Pro
       );
       const { text } = await generateText({
         model: openai(m),
-        system: SYSTEM_PROMPT + JSON_OUTPUT_INSTRUCTION,
+        system: getSystemPrompt(locale) + JSON_OUTPUT_INSTRUCTION,
         prompt: promptText,
         maxOutputTokens: MAX_OUTPUT_TOKENS,
         maxRetries: 0,
+        reasoning: "medium",
         timeout: DERIVE_TIMEOUT_MS,
         output: Output.object({ schema: DerivedSpecSchema }),
-        providerOptions: { openai: { forceReasoning: true, reasoningEffort: "minimal" } },
       });
       logger.info(`[RITU][LLM] raw text ${Date.now() - start}ms: ${text.slice(0, 500)}`);
       const parsed = tryParseJsonFromText(text);

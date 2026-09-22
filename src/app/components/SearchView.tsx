@@ -56,6 +56,7 @@ export default function SearchView() {
           body: JSON.stringify({
             query,
             platform,
+            locale,
             askQuestion: true,
             clarifyingAnswer: extra?.clarifyingAnswer,
             clarifyingQuestion: extra?.clarifyingQuestion,
@@ -91,6 +92,7 @@ export default function SearchView() {
         body: JSON.stringify({
           query,
           platform,
+          locale,
           askQuestion: false,
           clarifyingAnswer: extra?.clarifyingAnswer,
           clarifyingQuestion: extra?.clarifyingQuestion,
@@ -123,6 +125,7 @@ export default function SearchView() {
         body: JSON.stringify({
           query,
           platform,
+          locale,
           askQuestion: extra?.askQuestion ?? false,
           clarifyingAnswer: extra?.clarifyingAnswer,
           clarifyingQuestion: extra?.clarifyingQuestion,
