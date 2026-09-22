@@ -1,11 +1,9 @@
 import { createOpenAI } from "@ai-sdk/openai";
-import { generateObject, generateText } from "ai";
-import { z } from "zod";
+import { generateText } from "ai";
 import { logger } from "../logger";
 
-const ClarifyingQuestionSchema = z.object({
-  question: z.string().describe("One concise clarifying question"),
-});
+const ASK_TIMEOUT_MS = 15_000;
+const ASK_MAX_OUTPUT_TOKENS = 200;
 
 export async function askClarifyingQuestion(query: string): Promise<string> {
   const apiKey = process.env.LLM_API_KEY;
@@ -24,29 +22,18 @@ export async function askClarifyingQuestion(query: string): Promise<string> {
   const prompt = `Given the user request: "${query.trim().slice(0, 300)}"
 Ask ONE concise clarifying question to help derive precise product specs. Focus on use-case, price range, performance level, size/form-factor, or specific requirements. Keep it under 20 words.`;
 
-  try {
-    const { object } = await generateObject({
-      model: openai(model),
-      schema: ClarifyingQuestionSchema,
-      system: "You ask a single concise clarifying question to refine hardware/product specs.",
-      prompt,
-      temperature: 0.5,
-    });
-    logger.info(`[RITU][LLM] askClarifying ok question="${object.question.slice(0, 140)}"`);
-    return object.question;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    logger.warn(`[RITU][LLM] askClarifying generateObject failed: ${msg} — trying generateText`);
-    const { text } = await generateText({
-      model: openai(model),
-      system:
-        "Ask one concise clarifying question. Respond ONLY with the question text, no JSON, no quotes.",
-      prompt,
-      temperature: 0.5,
-    });
-    const q = text.trim().replace(/^"+|"+$/g, "");
-    if (!q) throw new Error(`Failed to parse clarifying question from LLM: ${text.slice(0, 200)}`);
-    logger.info(`[RITU][LLM] askClarifying text fallback question="${q.slice(0, 140)}"`);
-    return q;
-  }
+  const { text } = await generateText({
+    model: openai(model),
+    system:
+      "Ask one concise clarifying question. Respond ONLY with the question text, no JSON, no quotes.",
+    prompt,
+    maxOutputTokens: ASK_MAX_OUTPUT_TOKENS,
+    maxRetries: 0,
+    timeout: ASK_TIMEOUT_MS,
+    providerOptions: { openai: { forceReasoning: true, reasoningEffort: "minimal" } },
+  });
+  const q = text.trim().replace(/^"+|"+$/g, "");
+  if (!q) throw new Error(`Failed to parse clarifying question from LLM: ${text.slice(0, 200)}`);
+  logger.info(`[RITU][LLM] askClarifying ok question="${q.slice(0, 140)}"`);
+  return q;
 }

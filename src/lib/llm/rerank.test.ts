@@ -259,6 +259,15 @@ describe("rerank", () => {
       expect(body.query).toContain("Requirements: cpu: i7 (required)");
     });
 
+    it("includes excludedTerms in the rerank query", async () => {
+      mockRerankOk({ results: [{ index: 0, relevance_score: 0.9 }] });
+      await rerankWithModel([mkProduct("1", "laptop")], spec);
+      const [, opts] = vi.mocked(fetch).mock.calls[0] as [string, { body: string }];
+      const body = JSON.parse(opts.body) as { query: string };
+      expect(body.query).toContain("Excluded terms");
+      expect(body.query).toContain("sleeve");
+    });
+
     it("omits requirements section when spec has no requirements", async () => {
       mockRerankOk({ results: [{ index: 0, relevance_score: 0.9 }] });
       const noReqSpec: DerivedSpec = { ...spec, requirements: [] };
