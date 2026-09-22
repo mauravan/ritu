@@ -21,7 +21,10 @@ export function getRerankConfig() {
 
 function buildRerankQuery(spec: DerivedSpec): string {
   const reqs = spec.requirements.map((r) => `${r.key}: ${r.value} (${r.importance})`).join(", ");
-  return `${spec.category}: ${spec.summary}${reqs ? ` Requirements: ${reqs}` : ""}`;
+  const exclusions = spec.excludedTerms.length
+    ? ` Excluded terms (downweight results containing these): ${spec.excludedTerms.join(", ")}`
+    : "";
+  return `${spec.category}: ${spec.summary}${reqs ? ` Requirements: ${reqs}` : ""}${exclusions}`;
 }
 
 export async function rerankWithModel(

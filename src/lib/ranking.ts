@@ -16,6 +16,8 @@ const STOPWORDS = new Set([
   "das",
 ]);
 
+const EXCLUDED_TERM_PENALTY = -25;
+
 function tokenize(text: string): string[] {
   return text
     .toLowerCase()
@@ -133,6 +135,20 @@ export function tagExplanation(tag: Tag): string {
   }
 }
 
+function excludedTermPenalties(products: RawProduct[], spec: DerivedSpec): Map<string, string> {
+  const matches = new Map<string, string>();
+  const terms = (spec.excludedTerms ?? [])
+    .map((t) => t.toLowerCase().trim())
+    .filter((t) => t.length > 0);
+  if (terms.length === 0) return matches;
+  for (const p of products) {
+    const title = p.title.toLowerCase();
+    const hit = terms.find((t) => title.includes(t));
+    if (hit) matches.set(p.id, hit);
+  }
+  return matches;
+}
+
 export function rankProductsUnified(
   products: RawProduct[],
   spec: DerivedSpec,
@@ -147,7 +163,8 @@ export function rankProductsUnified(
   }
   const candidates = products;
   // Display-all mode: numeric mismatches only penalize scores; nothing is excluded.
-  const numericPenalties = applyNumericFilter(candidates, spec).penalties;
+  const { penalties: numericPenalties, penaltyFields } = applyNumericFilter(candidates, spec);
+  const excludedPenalties = excludedTermPenalties(candidates, spec);
   const filteredCandidates = candidates;
   // 2. Compute specScore (same logic as rankProducts)
   const keywords = keywordsFromSpec(spec);
@@ -206,7 +223,8 @@ export function rankProductsUnified(
         }
       }
     }
-    const penalty = numericPenalties.get(p.id) ?? 0;
+    const penalty =
+      (numericPenalties.get(p.id) ?? 0) + (excludedPenalties.has(p.id) ? EXCLUDED_TERM_PENALTY : 0);
     if (penalty !== 0) score += penalty;
 
     const specScore = Math.min(100, Math.max(1, score));
@@ -297,7 +315,11 @@ export function rankProductsUnified(
   for (const r of enriched) {
     if (r.matchedRequirements.length)
       r.reasons.push(`Matches: ${r.matchedRequirements.join(", ")}`);
-    if (r.priceChf !== null) r.reasons.push(`Price CHF ${r.priceChf}`);
+    const exclTerm = excludedPenalties.get(r.id);
+    if (exclTerm) r.reasons.push(`Penalty: excluded term "${exclTerm}"`);
+    const numericFields = penaltyFields.get(r.id);
+    if (numericFields?.length)
+      r.reasons.push(`Penalty: numeric mismatch (${numericFields.join(", ")})`);
     if (r.condition) r.reasons.push(`Condition: ${r.condition}`);
   }
 

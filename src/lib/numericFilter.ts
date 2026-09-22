@@ -87,8 +87,13 @@ function compareNumeric(
 export function applyNumericFilter(
   products: RawProduct[],
   spec: DerivedSpec,
-): { included: RawProduct[]; penalties: Map<string, number> } {
+): {
+  included: RawProduct[];
+  penalties: Map<string, number>;
+  penaltyFields: Map<string, string[]>;
+} {
   const penalties = new Map<string, number>();
+  const penaltyFields = new Map<string, string[]>();
   const includedIds = new Set<string>();
   for (const p of products) {
     let productExcluded = false;
@@ -106,6 +111,7 @@ export function applyNumericFilter(
           p.id,
           (penalties.get(p.id) ?? 0) + (req.importance === "required" ? -15 : -10),
         );
+        penaltyFields.set(p.id, [...(penaltyFields.get(p.id) ?? []), `${req.key}: ${req.value}`]);
         continue;
       }
       const passes = compareNumeric(
@@ -120,6 +126,7 @@ export function applyNumericFilter(
           productExcluded = true;
         } else {
           penalties.set(p.id, (penalties.get(p.id) ?? 0) - 15);
+          penaltyFields.set(p.id, [...(penaltyFields.get(p.id) ?? []), `${req.key}: ${req.value}`]);
         }
       } else {
         if (req.importance === "required") {
@@ -130,5 +137,5 @@ export function applyNumericFilter(
     if (!productExcluded) includedIds.add(p.id);
   }
   const included = products.filter((p) => includedIds.has(p.id));
-  return { included, penalties };
+  return { included, penalties, penaltyFields };
 }

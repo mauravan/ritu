@@ -103,6 +103,13 @@ describe("applyNumericFilter branches", () => {
     expect(included.map((p) => p.id)).toEqual(["p1"]);
     expect(penalties.get("p1")).toBeLessThan(0);
   });
+  it("records the requirement field for numeric penalties", () => {
+    const { penaltyFields } = applyNumericFilter(
+      [mkProduct("p1", "Laptop 8GB RAM")],
+      mkSpec([{ value: "at least 16 GB", importance: "preferred" }]),
+    );
+    expect(penaltyFields.get("p1")).toEqual(["k0: at least 16 GB"]);
+  });
 
   it("penalizes missing numeric and skips GPU/compound/zero requirements", () => {
     const { included, penalties } = applyNumericFilter(

@@ -485,5 +485,37 @@ describe("ranking", () => {
       expect(result).toHaveLength(2);
       expect(result[0].id).toBe("2");
     });
+
+    it("penalizes products whose title contains an excludedTerm", () => {
+      const products = [
+        makeProduct({ id: "1", title: "i7 16gb laptop", priceChf: 500 }),
+        makeProduct({ id: "2", title: "i7 16gb laptop sleeve", priceChf: 500 }),
+      ];
+      const spec: DerivedSpec = { ...baseSpec, excludedTerms: ["sleeve"] };
+      const result = rankProductsUnified(products, spec);
+      const normal = result.find((p) => p.id === "1");
+      const accessory = result.find((p) => p.id === "2");
+      expect(normal).toBeDefined();
+      expect(accessory).toBeDefined();
+      if (normal === undefined || accessory === undefined) throw new Error("test setup failed");
+      expect(accessory.specScore).toBeLessThan(normal.specScore);
+    });
+
+    it("adds a penalty reason when an excluded term matches", () => {
+      const products = [makeProduct({ id: "1", title: "i7 16gb laptop sleeve", priceChf: 500 })];
+      const spec: DerivedSpec = { ...baseSpec, excludedTerms: ["sleeve"] };
+      const result = rankProductsUnified(products, spec);
+      expect(result[0].reasons).toContain('Penalty: excluded term "sleeve"');
+    });
+
+    it("adds a penalty reason for numeric mismatch with the field", () => {
+      const products = [makeProduct({ id: "1", title: "laptop", priceChf: 500 })];
+      const spec: DerivedSpec = {
+        ...baseSpec,
+        requirements: [{ key: "ram", value: "32gb", importance: "required" }],
+      };
+      const result = rankProductsUnified(products, spec);
+      expect(result[0].reasons).toContain("Penalty: numeric mismatch (ram: 32gb)");
+    });
   });
 });

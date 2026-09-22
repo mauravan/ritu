@@ -93,13 +93,12 @@ describe("ProductList", () => {
       id: "1",
       title: "Test Product",
       matchedRequirements: ["cpu: i7", "ram: 16gb"],
-      reasons: ["Matches: cpu: i7, ram: 16gb", "Price CHF 100"],
+      reasons: ["Matches: cpu: i7, ram: 16gb"],
     });
     const html = renderList([p]);
     expect(html).toContain("cpu: i7");
     expect(html).toContain("ram: 16gb");
     expect(html).toContain("Matches:");
-    expect(html).toContain("Price CHF 100");
   });
 
   it("renders tags with colors", () => {
@@ -159,15 +158,26 @@ describe("ProductList", () => {
     expect(html).toContain("Condition:");
   });
 
+  it("translates penalty reasons", () => {
+    const p = mkRanked({
+      id: "1",
+      title: "Test Product",
+      reasons: ['Penalty: excluded term "sleeve"', "Penalty: numeric mismatch (ram: 32gb)"],
+    });
+    const html = renderList([p]);
+    expect(html).toContain("Penalty: excluded term");
+    expect(html).toContain("Penalty: numeric mismatch");
+    expect(html).toContain("(ram: 32gb)");
+  });
+
   it("renders untranslated reasons as-is", () => {
     const p = mkRanked({
       id: "1",
       title: "Test Product",
-      reasons: ["Matches: cpu: i7", "Price CHF 500", "Custom note xyz"],
+      reasons: ["Matches: cpu: i7", "Custom note xyz"],
     });
     const html = renderList([p]);
     expect(html).toContain("Matches:");
-    expect(html).toContain("Price CHF 500");
     expect(html).toContain("Custom note xyz");
   });
 

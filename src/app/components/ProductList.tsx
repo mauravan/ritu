@@ -58,8 +58,11 @@ type DerivedItem = {
 
 function translateReason(r: string, dict: typeof en): string {
   if (r.startsWith("Matches:")) return r.replace("Matches:", dict.matches_prefix);
-  if (r.startsWith("Price CHF")) return r.replace("Price CHF", dict.price_chf_prefix);
   if (r.startsWith("Condition:")) return r.replace("Condition:", dict.condition_prefix);
+  if (r.startsWith("Penalty: excluded term"))
+    return r.replace("Penalty: excluded term", dict.penalty_excluded_term);
+  if (r.startsWith("Penalty: numeric mismatch"))
+    return r.replace("Penalty: numeric mismatch", dict.penalty_numeric_mismatch);
   return r;
 }
 

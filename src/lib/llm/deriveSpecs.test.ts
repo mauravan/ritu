@@ -1,12 +1,12 @@
 import { createOpenAI } from "@ai-sdk/openai";
-import { generateObject, generateText } from "ai";
+import { generateText, Output } from "ai";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ValidationError } from "../errors";
 import { deriveSpecs, tryParseJsonFromText } from "./deriveSpecs";
 
 vi.mock("ai", () => ({
-  generateObject: vi.fn(),
   generateText: vi.fn(),
+  Output: { object: vi.fn(() => ({ __mockOutput: true })) },
 }));
 
 vi.mock("@ai-sdk/openai", () => ({
@@ -100,39 +100,61 @@ describe("deriveSpecs", () => {
       await expect(deriveSpecs("laptop for school")).rejects.toThrow("LLM_API_KEY missing");
     });
 
-    it("returns object from generateObject on first attempt", async () => {
-      vi.mocked(generateObject).mockResolvedValue({
-        object: validSpec,
-      } as never);
-      const result = await deriveSpecs("laptop for school");
-      expect(result).toEqual(validSpec);
-      expect(generateObject).toHaveBeenCalledTimes(1);
-      expect(generateText).not.toHaveBeenCalled();
-      expect(createOpenAI).toHaveBeenCalledWith({
-        apiKey: "test-key",
-        baseURL: "https://openrouter.ai/api/v1",
-      });
-    });
-
-    it("falls back to generateText when generateObject throws generic error", async () => {
-      vi.mocked(generateObject).mockRejectedValue(new Error("model does not support structured"));
+    it("returns spec from generateText", async () => {
       vi.mocked(generateText).mockResolvedValue({
         text: JSON.stringify(validSpec),
       } as never);
       const result = await deriveSpecs("laptop for school");
       expect(result).toEqual(validSpec);
       expect(generateText).toHaveBeenCalledTimes(1);
+      expect(Output.object).toHaveBeenCalledTimes(1);
+      expect(generateText).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: "mock-openai:openai/gpt-4o-mini",
+          maxRetries: 0,
+          maxOutputTokens: 1500,
+          timeout: 15000,
+          providerOptions: { openai: { forceReasoning: true, reasoningEffort: "minimal" } },
+        }),
+      );
+      expect(createOpenAI).toHaveBeenCalledWith({
+        apiKey: "test-key",
+        baseURL: "https://openrouter.ai/api/v1",
+      });
     });
 
-    it("rethrows ValidationError from generateObject", async () => {
-      const validationError = new ValidationError("bad schema");
-      vi.mocked(generateObject).mockRejectedValue(validationError);
-      await expect(deriveSpecs("laptop for school")).rejects.toBe(validationError);
-      expect(generateText).not.toHaveBeenCalled();
+    it("falls back to fallback model when primary fails", async () => {
+      vi.stubEnv("LLM_MODEL", "primary-model");
+      vi.stubEnv("LLM_FALLBACK_MODEL", "fallback-model");
+      vi.mocked(generateText)
+        .mockRejectedValueOnce(new Error("boom"))
+        .mockResolvedValueOnce({
+          text: JSON.stringify(validSpec),
+        } as never);
+      const result = await deriveSpecs("laptop for school");
+      expect(result).toEqual(validSpec);
+      expect(generateText).toHaveBeenCalledTimes(2);
+      const firstCall = vi.mocked(generateText).mock.calls[0][0] as {
+        model: string;
+      };
+      const secondCall = vi.mocked(generateText).mock.calls[1][0] as {
+        model: string;
+      };
+      expect(firstCall.model).toBe("mock-openai:primary-model");
+      expect(secondCall.model).toBe("mock-openai:fallback-model");
+    });
+
+    it("throws when both models return unparseable text", async () => {
+      vi.stubEnv("LLM_MODEL", "primary-model");
+      vi.stubEnv("LLM_FALLBACK_MODEL", "fallback-model");
+      vi.mocked(generateText).mockResolvedValue({
+        text: "not json at all",
+      } as never);
+      await expect(deriveSpecs("laptop for school")).rejects.toThrow("All LLM attempts failed");
+      expect(generateText).toHaveBeenCalledTimes(2);
     });
 
     it("throws ValidationError when generateText returns invalid schema", async () => {
-      vi.mocked(generateObject).mockRejectedValue(new Error("no structured"));
       vi.mocked(generateText).mockResolvedValue({
         text: JSON.stringify({ category: "laptop", missing: true }),
       } as never);
@@ -142,44 +164,33 @@ describe("deriveSpecs", () => {
       );
     });
 
-    it("throws fallback error when generateText returns unparseable text", async () => {
-      vi.mocked(generateObject).mockRejectedValue(new Error("no structured"));
-      vi.mocked(generateText).mockResolvedValue({
-        text: "not json at all",
-      } as never);
-      await expect(deriveSpecs("laptop for school")).rejects.toThrow("All LLM attempts failed");
-    });
-
-    it("rethrows ValidationError from generateText", async () => {
+    it("rethrows ValidationError from last attempt", async () => {
       const validationError = new ValidationError("text validation failed");
-      vi.mocked(generateObject).mockRejectedValue(new Error("no structured"));
       vi.mocked(generateText).mockRejectedValue(validationError);
       await expect(deriveSpecs("laptop for school")).rejects.toBe(validationError);
     });
 
-    it("throws fallback error when generateText rejects with generic error", async () => {
-      vi.mocked(generateObject).mockRejectedValue(new Error("no structured"));
+    it("throws when both attempts reject with generic error", async () => {
       vi.mocked(generateText).mockRejectedValue(new Error("network down"));
       await expect(deriveSpecs("laptop for school")).rejects.toThrow("All LLM attempts failed");
     });
 
     it("handles non-Error rejections from both attempts", async () => {
-      vi.mocked(generateObject).mockRejectedValue("plain string error");
-      vi.mocked(generateText).mockRejectedValue("another plain string");
+      vi.mocked(generateText).mockRejectedValue("plain string error");
       await expect(deriveSpecs("laptop for school")).rejects.toThrow("All LLM attempts failed");
     });
 
     it("includes clarifyingAnswer in prompt", async () => {
-      vi.mocked(generateObject).mockResolvedValue({
-        object: validSpec,
+      vi.mocked(generateText).mockResolvedValue({
+        text: JSON.stringify(validSpec),
       } as never);
       await deriveSpecs("laptop for school", "budget 800 CHF");
-      expect(generateObject).toHaveBeenCalledWith(
+      expect(generateText).toHaveBeenCalledWith(
         expect.objectContaining({
           prompt: expect.stringContaining("Original request: laptop for school"),
         }),
       );
-      const call = vi.mocked(generateObject).mock.calls[0][0] as {
+      const call = vi.mocked(generateText).mock.calls[0][0] as {
         prompt: string;
       };
       expect(call.prompt).toContain("Clarifying context from user: budget 800 CHF");
@@ -187,11 +198,11 @@ describe("deriveSpecs", () => {
 
     it("truncates input to 500 chars", async () => {
       const longInput = "a".repeat(600);
-      vi.mocked(generateObject).mockResolvedValue({
-        object: validSpec,
+      vi.mocked(generateText).mockResolvedValue({
+        text: JSON.stringify(validSpec),
       } as never);
       await deriveSpecs(longInput);
-      const call = vi.mocked(generateObject).mock.calls[0][0] as {
+      const call = vi.mocked(generateText).mock.calls[0][0] as {
         prompt: string;
       };
       expect(call.prompt.length).toBeLessThanOrEqual(500);
@@ -200,15 +211,17 @@ describe("deriveSpecs", () => {
     it("uses env baseURL and model when set", async () => {
       vi.stubEnv("LLM_BASE_URL", "https://custom.example.com");
       vi.stubEnv("LLM_MODEL", "custom-model");
-      vi.mocked(generateObject).mockResolvedValue({
-        object: validSpec,
+      vi.stubEnv("LLM_FALLBACK_MODEL", "custom-model");
+      vi.mocked(generateText).mockResolvedValue({
+        text: JSON.stringify(validSpec),
       } as never);
       await deriveSpecs("laptop");
       expect(createOpenAI).toHaveBeenCalledWith({
         apiKey: "test-key",
         baseURL: "https://custom.example.com",
       });
-      const call = vi.mocked(generateObject).mock.calls[0][0] as {
+      expect(generateText).toHaveBeenCalledTimes(1);
+      const call = vi.mocked(generateText).mock.calls[0][0] as {
         model: string;
       };
       expect(call.model).toBe("mock-openai:custom-model");
