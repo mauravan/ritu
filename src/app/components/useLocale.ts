@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
-type Locale = "de" | "en";
+import type { Locale } from "@/lib/types";
 
 function getInitialLocale(): Locale {
   if (typeof window === "undefined") return "de";

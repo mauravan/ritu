@@ -23,6 +23,7 @@ export async function POST(req: Request): Promise<Response> {
     query,
     platform,
     askQuestion,
+    locale,
     clarifyingAnswer,
     clarifyingQuestion,
     originalQuery,
@@ -31,7 +32,7 @@ export async function POST(req: Request): Promise<Response> {
   } = rest;
   if (askQuestion === true) {
     try {
-      const question = await askClarifyingQuestion(query);
+      const question = await askClarifyingQuestion(query, locale);
       logger.info(`[RITU][SEARCH] clarifying question="${question.slice(0, 140)}"`);
       return NextResponse.json({ clarifyingQuestion: question }, { status: 200 });
     } catch (e) {
@@ -39,6 +40,7 @@ export async function POST(req: Request): Promise<Response> {
       logger.warn(
         `[RITU][SEARCH] askClarifying failed: ${msg} — falling back to direct deriveSpecs`,
       );
+      console.error(e);
     }
   }
   let spec: DerivedSpec;
@@ -47,7 +49,7 @@ export async function POST(req: Request): Promise<Response> {
     logger.info(`[RITU][SEARCH] using provided derivedSpec category=${spec.category}`);
   } else {
     try {
-      spec = await deriveSpecs(query, clarifyingAnswer);
+      spec = await deriveSpecs(query, clarifyingAnswer, locale);
       logger.info(`[RITU][SEARCH] derivedSpec=${JSON.stringify(spec)}`);
     } catch (err) {
       if (err instanceof ValidationError) {

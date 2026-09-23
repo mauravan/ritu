@@ -110,17 +110,24 @@ describe("deriveSpecs", () => {
       expect(Output.object).toHaveBeenCalledTimes(1);
       expect(generateText).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: "mock-openai:openai/gpt-4o-mini",
+          model: "mock-openai:google/gemma-4-31b-it:free",
           maxRetries: 0,
           maxOutputTokens: 1500,
           timeout: 15000,
-          providerOptions: { openai: { forceReasoning: true, reasoningEffort: "minimal" } },
+          reasoning: "medium",
         }),
       );
       expect(createOpenAI).toHaveBeenCalledWith({
         apiKey: "test-key",
         baseURL: "https://openrouter.ai/api/v1",
       });
+    });
+
+    it("uses the German system prompt when locale is de", async () => {
+      vi.mocked(generateText).mockResolvedValue({ text: JSON.stringify(validSpec) } as never);
+      await deriveSpecs("laptop for school", undefined, "de");
+      const call = vi.mocked(generateText).mock.calls[0][0] as { system: string };
+      expect(call.system).toContain("Schweizer Gebrauchtmarkt");
     });
 
     it("falls back to fallback model when primary fails", async () => {
