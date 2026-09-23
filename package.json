@@ -1,6 +1,6 @@
 {
   "name": "ritu",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Marketplace search app using LLM spec derivation",
   "private": false,
   "scripts": {
