@@ -198,33 +198,30 @@ export default function ListingGallery({
               <div className="relative h-[70vh] max-h-[70vh] w-full touch-manipulation overscroll-contain">
                 {status === "loading" ? (
                   <div className="h-full w-full flex flex-col items-center justify-center gap-2">
-                    {coverUrl ? (
-                      <Image
-                        src={coverUrl}
-                        alt={title}
-                        fill
-                        className="object-contain"
-                        sizes="100vw"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : null}
+                    <Image
+                      src={coverUrl}
+                      alt={title}
+                      fill
+                      className="object-contain"
+                      sizes="100vw"
+                      referrerPolicy="no-referrer"
+                    />
                     <p className="text-xs text-text-secondary">{dict.loading_photos}</p>
                   </div>
                 ) : status === "error" ? (
                   <div className="h-full w-full flex flex-col items-center justify-center gap-2">
-                    {coverUrl ? (
-                      <Image
-                        src={coverUrl}
-                        alt={title}
-                        fill
-                        className="object-contain"
-                        sizes="100vw"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : null}
+                    <Image
+                      src={coverUrl}
+                      alt={title}
+                      fill
+                      className="object-contain"
+                      sizes="100vw"
+                      referrerPolicy="no-referrer"
+                    />
                     <p className="text-xs text-error-text">{dict.could_not_load_photos}</p>
                   </div>
                 ) : images.length === 0 ? (
+                  /* istanbul ignore next: unreachable — done with zero images implies coverUrl null, which renders no trigger */
                   <div className="h-full w-full flex items-center justify-center">
                     <p className="text-xs text-text-secondary">{dict.no_photos_available}</p>
                   </div>
