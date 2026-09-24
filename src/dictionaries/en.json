@@ -82,5 +82,14 @@
   "sort_ai": "ai",
   "sort_asc": "ascending",
   "sort_desc": "descending",
-  "sort_aria": "Sort by {label}, {direction}"
+  "sort_aria": "Sort by {label}, {direction}",
+  "photos": "Photos",
+  "loading_photos": "Loading photos…",
+  "could_not_load_photos": "Could not load photos.",
+  "no_photos_available": "No photos available.",
+  "open_photos": "View photos",
+  "close": "Close",
+  "previous_photo": "Previous photo",
+  "next_photo": "Next photo",
+  "photo_counter": "{current} of {total}"
 }

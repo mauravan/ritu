@@ -82,5 +82,14 @@
   "sort_ai": "ki",
   "sort_asc": "aufsteigend",
   "sort_desc": "absteigend",
-  "sort_aria": "Nach {label} sortieren, {direction}"
+  "sort_aria": "Nach {label} sortieren, {direction}",
+  "photos": "Fotos",
+  "loading_photos": "Fotos werden geladen…",
+  "could_not_load_photos": "Fotos konnten nicht geladen werden.",
+  "no_photos_available": "Keine Fotos verfügbar.",
+  "open_photos": "Fotos ansehen",
+  "close": "Schließen",
+  "previous_photo": "Vorheriges Foto",
+  "next_photo": "Nächstes Foto",
+  "photo_counter": "{current} von {total}"
 }
