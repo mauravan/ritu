@@ -235,4 +235,31 @@ describe("SearchForm zip and radius inputs", () => {
     fireEvent.change(radius, { target: { value: "-5" } });
     expect(radius.value).toBe("1");
   });
+
+  it("allows clearing radius and submits default 20", async () => {
+    const onSearch = vi.fn(async () => undefined);
+    render(
+      <SearchForm
+        onSearch={onSearch}
+        isLoading={false}
+        error={null}
+        zipCode="8000"
+        onZipCodeChange={() => undefined}
+      />,
+    );
+    const radius = screen.getByLabelText(/Radius/) as HTMLInputElement;
+    fireEvent.change(radius, { target: { value: "" } });
+    expect(radius.value).toBe("");
+    fireEvent.change(screen.getByRole("textbox", { name: /what are you looking for/i }), {
+      target: { value: "mini pc" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /search$/i }));
+    await waitFor(() =>
+      expect(onSearch).toHaveBeenCalledWith(
+        "mini pc",
+        "both",
+        expect.objectContaining({ zipCode: "8000", radius: 20 }),
+      ),
+    );
+  });
 });

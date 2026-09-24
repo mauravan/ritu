@@ -50,25 +50,26 @@ export default function SearchForm({
   const [awaitingClarification, setAwaitingClarification] = useState(false);
   const [clarifyingQuestion, setClarifyingQuestion] = useState("");
   const [clarifyingAnswer, setClarifyingAnswer] = useState("");
-  const [radius, setRadius] = useState(20);
+  const [radius, setRadius] = useState<number | "">(20);
   const [originalQuery, setOriginalQuery] = useState("");
   const runSubmit = async (askQuestionParam = false) => {
     const trimmedQuery = query.trim();
     if (!trimmedQuery) return;
     const isConfirmation = awaitingClarification;
     const nextQuery = isConfirmation ? originalQuery : trimmedQuery;
+    const resolvedRadius = radius === "" ? 20 : radius;
     const opts = isConfirmation
       ? {
           clarifyingAnswer: clarifyingAnswer.trim(),
           clarifyingQuestion: clarifyingQuestion,
           originalQuery: originalQuery,
           zipCode: zipCode.trim() || undefined,
-          radius: zipCode.trim() ? radius : undefined,
+          radius: zipCode.trim() ? resolvedRadius : undefined,
         }
       : {
           askQuestion: askQuestionParam,
           zipCode: zipCode.trim() || undefined,
-          radius: zipCode.trim() ? radius : undefined,
+          radius: zipCode.trim() ? resolvedRadius : undefined,
         };
     try {
       const response = await onSearch(nextQuery, platform, opts);
@@ -185,9 +186,16 @@ export default function SearchForm({
                   min={1}
                   max={100}
                   value={radius}
-                  onChange={(e) =>
-                    setRadius(Math.max(1, Math.min(100, Number(e.target.value) || 20)))
-                  }
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "") {
+                      setRadius("");
+                      return;
+                    }
+                    const n = Number(value);
+                    if (!Number.isFinite(n)) return;
+                    setRadius(Math.max(1, Math.min(100, n)));
+                  }}
                   className="w-20 rounded-[2px] border border-border bg-panel px-2 py-1 text-xs"
                 />
               </label>
