@@ -1,11 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import { memo, useMemo } from "react";
 import de from "@/dictionaries/de.json";
 import en from "@/dictionaries/en.json";
 import type { RankedProduct, SortBy, SortDir, Tag } from "@/lib/types";
 import ListingDescription from "./ListingDescription";
+import ListingGallery from "./ListingGallery";
 import SortSelect from "./SortSelect";
 import Tooltip from "./Tooltip";
 import useLocale from "./useLocale";
@@ -82,30 +82,7 @@ const ProductItem = memo(function ProductItem({
       className="p-3 sm:p-4 flex flex-col sm:flex-row gap-3 sm:gap-4 border-b border-border last:border-b-0"
       style={{ contentVisibility: "auto", containIntrinsicSize: "0 180px" }}
     >
-      <div className="shrink-0">
-        {p.imageUrl ? (
-          <Image
-            src={p.imageUrl}
-            alt={p.title}
-            width={128}
-            height={128}
-            className="h-24 w-24 md:h-32 md:w-32 object-cover rounded-[2px] bg-canvas border border-border"
-            loading="lazy"
-            referrerPolicy="no-referrer"
-            onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-              (e.currentTarget as HTMLImageElement).style.display = "none";
-              const sib = e.currentTarget.nextElementSibling as HTMLElement | null;
-              if (sib) sib.style.display = "flex";
-            }}
-          />
-        ) : null}
-        <div
-          className="h-24 w-24 md:h-32 md:w-32 rounded-[2px] bg-canvas border border-border items-center justify-center text-xs text-text-secondary"
-          style={{ display: p.imageUrl ? "none" : "flex" }}
-        >
-          {dict.no_image}
-        </div>
-      </div>
+      <ListingGallery marketplace={p.marketplace} id={p.id} title={p.title} coverUrl={p.imageUrl} />
 
       <div className="flex-1 min-w-0 space-y-2">
         <div className="flex items-start justify-between gap-2">
