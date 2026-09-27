@@ -60,13 +60,7 @@ export type SearchResult = {
   queries: MarketplaceQuery[];
   products: RankedProduct[];
   platform?: Platform;
-  clarifyingQuestion?: string;
-  clarifyingAnswer?: string;
-  originalQuery?: string;
 };
-
-// biome-ignore lint/complexity/noBannedTypes: placeholder response type
-export type ClarifyingResponse = {};
 
 export type SortBy = "spec" | "value" | "ai" | "hybrid" | "price";
 export type SortDir = "asc" | "desc";

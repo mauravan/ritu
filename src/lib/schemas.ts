@@ -59,21 +59,14 @@ export const SearchResultSchema = z
     queries: z.array(MarketplaceQuerySchema),
     products: z.array(RankedProductSchema),
     platform: z.enum(["both", "ricardo", "tutti"]).optional(),
-    clarifyingQuestion: z.string().optional(),
-    clarifyingAnswer: z.string().optional(),
-    originalQuery: z.string().optional(),
   })
   .strict();
 
 export const SearchRequestSchema = z.object({
   query: z.string().min(3).max(500),
   platform: z.enum(["both", "ricardo", "tutti"]).optional().default("both"),
-  askQuestion: z.boolean().optional().default(false),
   locale: z.enum(["de", "en"]).optional().default("de"),
-  clarifyingAnswer: z.string().optional(),
-  clarifyingQuestion: z.string().optional(),
-  originalQuery: z.string().optional(),
-  derivedSpec: DerivedSpecSchema.optional(),
+  askedQuestions: z.array(z.string().max(500)).max(10).optional().default([]),
   zipCode: z
     .string()
     .regex(/^\d{4}$/)

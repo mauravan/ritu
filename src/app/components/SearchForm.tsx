@@ -17,14 +17,7 @@ type Props = {
   onSearch: (
     query: string,
     platform: Platform,
-    extra?: {
-      askQuestion?: boolean;
-      clarifyingAnswer?: string;
-      clarifyingQuestion?: string;
-      originalQuery?: string;
-      zipCode?: string;
-      radius?: number;
-    },
+    extra?: { zipCode?: string; radius?: number; askedQuestions?: string[] },
   ) => Promise<SearchResponse>;
   isLoading: boolean;
   error: string | null;
@@ -45,76 +38,70 @@ export default function SearchForm({
 
   const [query, setQuery] = useState("");
   const [platform, setPlatform] = useState<Platform>("both");
-  // biome-ignore lint/correctness/noUnusedVariables: expected state variable per clarification flow
-  const [askQuestion, setAskQuestion] = useState(false);
-  const [awaitingClarification, setAwaitingClarification] = useState(false);
   const [clarifyingQuestion, setClarifyingQuestion] = useState("");
   const [clarifyingAnswer, setClarifyingAnswer] = useState("");
+  const [askedQuestions, setAskedQuestions] = useState<string[]>([]);
   const [radius, setRadius] = useState<number | "">(20);
-  const [originalQuery, setOriginalQuery] = useState("");
-  const runSubmit = async (askQuestionParam = false) => {
-    const trimmedQuery = query.trim();
-    if (!trimmedQuery) return;
-    const isConfirmation = awaitingClarification;
-    const nextQuery = isConfirmation ? originalQuery : trimmedQuery;
+  const awaitingClarification = clarifyingQuestion !== "";
+
+  const buildExtra = () => {
     const resolvedRadius = radius === "" ? 20 : radius;
-    const opts = isConfirmation
-      ? {
-          clarifyingAnswer: clarifyingAnswer.trim(),
-          clarifyingQuestion: clarifyingQuestion,
-          originalQuery: originalQuery,
-          zipCode: zipCode.trim() || undefined,
-          radius: zipCode.trim() ? resolvedRadius : undefined,
-        }
-      : {
-          askQuestion: askQuestionParam,
-          zipCode: zipCode.trim() || undefined,
-          radius: zipCode.trim() ? resolvedRadius : undefined,
-        };
+    return {
+      zipCode: zipCode.trim() || undefined,
+      radius: zipCode.trim() ? resolvedRadius : undefined,
+    };
+  };
+  const submitSearch = async () => {
+    const trimmedQuery = query.trim();
+    if (trimmedQuery.length < 3) return;
     try {
-      const response = await onSearch(nextQuery, platform, opts);
-      if (isConfirmation) {
-        setAwaitingClarification(false);
-        setAskQuestion(false);
+      const response = await onSearch(trimmedQuery, platform, {
+        ...buildExtra(),
+        askedQuestions,
+      });
+      if (response && "clarifyingQuestion" in response && response.clarifyingQuestion) {
+        const q = response.clarifyingQuestion as string;
+        setClarifyingQuestion(q);
+        setAskedQuestions((prev) => (prev.includes(q) ? prev : [...prev, q]));
         setClarifyingAnswer("");
-        setClarifyingQuestion("");
-        setOriginalQuery("");
-        return;
+      } else {
+        setAskedQuestions([]);
       }
-      if (
-        askQuestionParam &&
-        response &&
-        "clarifyingQuestion" in response &&
-        response.clarifyingQuestion &&
-        !("derivedSpec" in response)
-      ) {
-        setClarifyingQuestion(response.clarifyingQuestion);
-        setOriginalQuery(trimmedQuery);
-        setClarifyingAnswer("");
-        setAwaitingClarification(true);
-        return;
-      }
-      setAwaitingClarification(false);
-      setAskQuestion(false);
     } catch {
-      setAwaitingClarification(false);
+      // error surfaced via `error` prop
+    }
+  };
+
+  const submitAnswer = async () => {
+    const answer = clarifyingAnswer.trim();
+    if (!answer) return;
+    const newContext = `${query.trim()} ${answer}`;
+    setQuery(newContext);
+    setClarifyingQuestion("");
+    setClarifyingAnswer("");
+    try {
+      const response = await onSearch(newContext, platform, { ...buildExtra(), askedQuestions });
+      if (response && "clarifyingQuestion" in response && response.clarifyingQuestion) {
+        const q = response.clarifyingQuestion as string;
+        setClarifyingQuestion(q);
+        setAskedQuestions((prev) => (prev.includes(q) ? prev : [...prev, q]));
+        setClarifyingAnswer("");
+      } else {
+        setAskedQuestions([]);
+      }
+    } catch {
+      // error surfaced via `error` prop
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    void runSubmit(false);
+    if (awaitingClarification) return;
+    void submitSearch();
   };
 
-  const handleSearchWithQuestion = (e: React.FormEvent) => {
-    e.preventDefault();
-    void runSubmit(true);
-  };
-
-  const handleConfirm = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!clarifyingAnswer.trim()) return;
-    void runSubmit(false);
+  const handleAnswer = () => {
+    void submitAnswer();
   };
 
   const heroTitle = String(
@@ -209,17 +196,6 @@ export default function SearchForm({
               >
                 {String((dict as Record<string, unknown>).search_button ?? "Search")}
               </LoadingButton>
-              <LoadingButton
-                type="button"
-                isLoading={isLoading}
-                disabled={isLoading || query.trim().length < 3 || awaitingClarification}
-                onClick={handleSearchWithQuestion}
-                className="bracket-tag px-4 py-1.5 text-xs font-medium rounded-[2px] border border-border bg-panel text-text-primary hover:bg-surface-subtle disabled:opacity-50 transition-colors cursor-pointer text-center"
-              >
-                {String(
-                  (dict as Record<string, unknown>).search_with_question ?? "Search with question",
-                )}
-              </LoadingButton>
             </div>
           </div>
         </div>
@@ -245,10 +221,10 @@ export default function SearchForm({
                 type="button"
                 isLoading={isLoading}
                 disabled={isLoading || !clarifyingAnswer.trim()}
-                onClick={handleConfirm}
+                onClick={handleAnswer}
                 className="bracket-tag px-4 py-1.5 text-xs font-medium rounded-[2px] bg-interface-accent text-on-selection hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
               >
-                {String((dict as Record<string, unknown>).confirm ?? "Confirm")}
+                {String((dict as Record<string, unknown>).answer_and_search ?? "Answer & search")}
               </LoadingButton>
             </div>
           </div>

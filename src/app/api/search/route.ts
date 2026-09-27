@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { sanitizeSearchQueries } from "@/lib/accessoryGuard";
 import { SpecDerivationError, ValidationError } from "@/lib/errors";
 import { filterByDistance } from "@/lib/geo";
+import { decideSearchAction } from "@/lib/jev/decideSearch";
 import { askClarifyingQuestion } from "@/lib/llm/askClarifying";
 import { deriveSpecs } from "@/lib/llm/deriveSpecs";
 import { runOptionalRerank } from "@/lib/llm/rerank";
@@ -18,56 +19,48 @@ import type { DerivedSpec, SearchResult } from "@/lib/types";
 export async function POST(req: Request): Promise<Response> {
   const parsed = await parseSearchRequest(req);
   if (!parsed.ok) return parsed.errorResponse;
-  const { derivedSpec: providedSpec, ...rest } = parsed.data;
-  const {
-    query,
-    platform,
-    askQuestion,
-    locale,
-    clarifyingAnswer,
-    clarifyingQuestion,
-    originalQuery,
-    zipCode,
-    radius,
-  } = rest;
-  if (askQuestion === true) {
+  const { query, platform, locale, askedQuestions, zipCode, radius } = parsed.data;
+
+  const MAX_CLARIFYING_QUESTIONS = 2;
+  const questionsExhausted = askedQuestions.length >= MAX_CLARIFYING_QUESTIONS;
+  if (questionsExhausted) {
+    logger.info(
+      `[RITU][SEARCH] clarifying cap reached (${askedQuestions.length}/${MAX_CLARIFYING_QUESTIONS}) — searching directly`,
+    );
+  }
+
+  const decision = questionsExhausted ? "search" : await decideSearchAction(query);
+  if (decision === "clarify") {
     try {
-      const question = await askClarifyingQuestion(query, locale);
+      const question = await askClarifyingQuestion(query, locale, askedQuestions);
       logger.info(`[RITU][SEARCH] clarifying question="${question.slice(0, 140)}"`);
       return NextResponse.json({ clarifyingQuestion: question }, { status: 200 });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      logger.warn(
-        `[RITU][SEARCH] askClarifying failed: ${msg} — falling back to direct deriveSpecs`,
-      );
-      console.error(e);
+      logger.warn(`[RITU][SEARCH] askClarifying failed: ${msg} — falling back to direct search`);
     }
   }
+
   let spec: DerivedSpec;
-  if (providedSpec) {
-    spec = providedSpec;
-    logger.info(`[RITU][SEARCH] using provided derivedSpec category=${spec.category}`);
-  } else {
-    try {
-      spec = await deriveSpecs(query, clarifyingAnswer, locale);
-      logger.info(`[RITU][SEARCH] derivedSpec=${JSON.stringify(spec)}`);
-    } catch (err) {
-      if (err instanceof ValidationError) {
-        logger.warn(`[RITU][SEARCH] validation ${err.message}`);
-        return NextResponse.json(
-          { error: "validation_error", details: err.message },
-          { status: 400 },
-        );
-      }
-      if (err instanceof SpecDerivationError) {
-        logger.warn(`[RITU][SEARCH] spec error ${err.message}`);
-        return NextResponse.json(
-          { error: "spec_derivation_failed", details: err.message },
-          { status: 502 },
-        );
-      }
-      throw err;
+  try {
+    spec = await deriveSpecs(query, locale);
+    logger.info(`[RITU][SEARCH] derivedSpec=${JSON.stringify(spec)}`);
+  } catch (err) {
+    if (err instanceof ValidationError) {
+      logger.warn(`[RITU][SEARCH] validation ${err.message}`);
+      return NextResponse.json(
+        { error: "validation_error", details: err.message },
+        { status: 400 },
+      );
     }
+    if (err instanceof SpecDerivationError) {
+      logger.warn(`[RITU][SEARCH] spec error ${err.message}`);
+      return NextResponse.json(
+        { error: "spec_derivation_failed", details: err.message },
+        { status: 502 },
+      );
+    }
+    throw err;
   }
 
   spec.searchQueries = sanitizeSearchQueries(spec);
@@ -112,14 +105,11 @@ export async function POST(req: Request): Promise<Response> {
     );
 
   const result: SearchResult = {
-    input: originalQuery || query,
+    input: query,
     derivedSpec: spec,
     queries,
     products,
     platform,
-    clarifyingQuestion: clarifyingQuestion || undefined,
-    clarifyingAnswer: clarifyingAnswer || undefined,
-    originalQuery: originalQuery || query,
   };
   return NextResponse.json(result);
 }

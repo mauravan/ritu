@@ -57,13 +57,7 @@ describe("SearchView", () => {
   function stubFetch(searchStatus: number, searchBody: unknown) {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async (input: string | URL | Request) => {
-        const s = String(input instanceof Request ? input.url : input);
-        if (s.includes("/api/search/derive")) {
-          return new Response(JSON.stringify({ derivedSpec: SPEC }), { status: 200 });
-        }
-        return new Response(JSON.stringify(searchBody), { status: searchStatus });
-      }),
+      vi.fn(async () => new Response(JSON.stringify(searchBody), { status: searchStatus })),
     );
   }
 
@@ -108,32 +102,10 @@ describe("SearchView branches", () => {
     fireEvent.click(screen.getByRole("button", { name: /search$/i }));
   }
 
-  it("proceeds to full search when derive fails", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (input: string | URL | Request) => {
-        const s = String(input instanceof Request ? input.url : input);
-        if (s.includes("/api/search/derive")) {
-          return new Response(JSON.stringify({ error: "internal_error" }), { status: 500 });
-        }
-        return new Response(JSON.stringify(RESULT), { status: 200 });
-      }),
-    );
-    render(<SearchView />);
-    await search();
-    await waitFor(() => expect(screen.getByRole("link", { name: /Mini PC Alpha/ })).toBeDefined());
-  });
-
   it("shows no-products message for empty result", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async (input: string | URL | Request) => {
-        const s = String(input instanceof Request ? input.url : input);
-        if (s.includes("/api/search/derive")) {
-          return new Response(JSON.stringify({ derivedSpec: SPEC }), { status: 200 });
-        }
-        return new Response(JSON.stringify({ ...RESULT, products: [] }), { status: 200 });
-      }),
+      vi.fn(async () => new Response(JSON.stringify({ ...RESULT, products: [] }), { status: 200 })),
     );
     render(<SearchView />);
     await search();
@@ -145,13 +117,7 @@ describe("SearchView branches", () => {
   it("falls back to status message when error has no code", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async (input: string | URL | Request) => {
-        const s = String(input instanceof Request ? input.url : input);
-        if (s.includes("/api/search/derive")) {
-          return new Response(JSON.stringify({ derivedSpec: SPEC }), { status: 200 });
-        }
-        return new Response(JSON.stringify({}), { status: 500 });
-      }),
+      vi.fn(async () => new Response(JSON.stringify({}), { status: 500 })),
     );
     render(<SearchView />);
     await search();
@@ -170,51 +136,19 @@ describe("SearchView branches", () => {
     await waitFor(() => expect(screen.getByText(/network down/)).toBeDefined());
   });
 
-  it("returns clarifying question on askQuestion path", async () => {
+  it("shows clarifying question from server", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
-        const s = String(input instanceof Request ? input.url : input);
-        if (s.includes("/api/search/derive")) {
-          return new Response(JSON.stringify({ derivedSpec: SPEC }), { status: 200 });
-        }
-        if (JSON.parse(String(init?.body ?? "{}")).askQuestion === true) {
-          return new Response(JSON.stringify({ clarifyingQuestion: "What size?" }), {
-            status: 200,
-          });
-        }
-        return new Response(JSON.stringify(RESULT), { status: 200 });
-      }),
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ clarifyingQuestion: "What size?" }), { status: 200 }),
+      ),
     );
     render(<SearchView />);
     fireEvent.change(screen.getByRole("textbox", { name: /what are you looking for/i }), {
       target: { value: "mini pc" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /search with question/i }));
+    fireEvent.click(screen.getByRole("button", { name: /search$/i }));
     await waitFor(() => expect(screen.getByText("What size?")).toBeDefined());
-  });
-
-  it("shows error on askQuestion failure", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
-        const s = String(input instanceof Request ? input.url : input);
-        if (s.includes("/api/search/derive")) {
-          return new Response(JSON.stringify({ derivedSpec: SPEC }), { status: 200 });
-        }
-        if (JSON.parse(String(init?.body ?? "{}")).askQuestion === true) {
-          return new Response(JSON.stringify({ error: "spec_derivation_failed" }), {
-            status: 502,
-          });
-        }
-        return new Response(JSON.stringify(RESULT), { status: 200 });
-      }),
-    );
-    render(<SearchView />);
-    fireEvent.change(screen.getByRole("textbox", { name: /what are you looking for/i }), {
-      target: { value: "mini pc" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /search with question/i }));
-    await waitFor(() => expect(screen.getByText(/spec_derivation_failed/)).toBeDefined());
   });
 });

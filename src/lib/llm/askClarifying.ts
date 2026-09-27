@@ -7,7 +7,11 @@ import { buildClarifyingUserPrompt, getClarifyingSystemPrompt } from "./prompt";
 const ASK_TIMEOUT_MS = 15_000;
 const ASK_MAX_OUTPUT_TOKENS = 200;
 
-export async function askClarifyingQuestion(query: string, locale: Locale = "de"): Promise<string> {
+export async function askClarifyingQuestion(
+  query: string,
+  locale: Locale = "de",
+  askedQuestions: string[] = [],
+): Promise<string> {
   const apiKey = process.env.LLM_API_KEY;
   const baseURL = process.env.LLM_BASE_URL || "https://openrouter.ai/api/v1";
   const model = process.env.LLM_MODEL || "google/gemma-4-31b-it:free";
@@ -21,7 +25,7 @@ export async function askClarifyingQuestion(query: string, locale: Locale = "de"
 
   const openai = createOpenAI({ apiKey, baseURL });
 
-  const prompt = buildClarifyingUserPrompt(query, locale);
+  const prompt = buildClarifyingUserPrompt(query, locale, askedQuestions);
 
   const { text } = await generateText({
     model: openai(model),
