@@ -13,11 +13,11 @@ describe("SearchForm regression - clarification reset", () => {
     window.localStorage.clear();
   });
 
-  it("confirmation resets clarification state so buttons return and second question works", async () => {
+  it("answer merges context and re-runs decision; second question works", async () => {
     const responses = [
       { clarifyingQuestion: "What size?" },
-      undefined,
       { clarifyingQuestion: "What budget?" },
+      undefined,
     ];
     let callIndex = 0;
     const onSearch = vi.fn(async () => {
@@ -35,46 +35,39 @@ describe("SearchForm regression - clarification reset", () => {
       />,
     );
 
-    // regular search works
     fireEvent.change(screen.getByRole("textbox", { name: /what are you looking for/i }), {
       target: { value: "laptop" },
     });
     fireEvent.click(screen.getByRole("button", { name: /search$/i }));
     await waitFor(() =>
       expect(onSearch).toHaveBeenCalledWith("laptop", "both", {
-        askQuestion: false,
+        zipCode: undefined,
+        radius: undefined,
+        askedQuestions: [],
       }),
     );
 
-    // ask clarifying question
-    callIndex = 0;
-    onSearch.mockClear();
-    fireEvent.change(screen.getByRole("textbox", { name: /what are you looking for/i }), {
-      target: { value: "laptop" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /search with question/i }));
     await waitFor(() => expect(screen.getByText("What size?")).toBeDefined());
 
-    // fill answer and confirm
     fireEvent.change(screen.getByPlaceholderText(/your answer/i), {
       target: { value: "13 inch" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /confirm/i }));
+    fireEvent.click(screen.getByRole("button", { name: /answer & search/i }));
 
-    // after confirmation, clarification UI removed and buttons present
-    await waitFor(() => expect(screen.queryByText("What size?")).toBeNull());
-    expect(screen.getByRole("button", { name: /search$/i })).toBeDefined();
-    expect(screen.getByRole("button", { name: /search with question/i })).toBeDefined();
-
-    // second question request succeeds (shows clarification reset works)
-    fireEvent.change(screen.getByRole("textbox", { name: /what are you looking for/i }), {
-      target: { value: "laptop" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /search with question/i }));
+    await waitFor(() =>
+      expect(onSearch).toHaveBeenCalledWith("laptop 13 inch", "both", {
+        zipCode: undefined,
+        radius: undefined,
+        askedQuestions: ["What size?"],
+      }),
+    );
     await waitFor(() => expect(screen.getByText("What budget?")).toBeDefined());
+    expect(
+      (screen.getByRole("textbox", { name: /what are you looking for/i }) as HTMLInputElement)
+        .value,
+    ).toBe("laptop 13 inch");
   });
 });
-
 describe("SearchForm edge cases", () => {
   beforeEach(() => {
     window.localStorage.setItem("locale", "en");
@@ -159,7 +152,7 @@ describe("SearchForm edge cases", () => {
     );
     fireEvent.change(textareas[0], { target: { value: "laptop" } });
     const buttons = screen.getAllByRole("button", {
-      name: /search with question/i,
+      name: /search$/i,
     });
     if (!buttons[0].disabled) {
       fireEvent.click(buttons[0]);

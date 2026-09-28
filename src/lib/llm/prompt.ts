@@ -79,8 +79,24 @@ export function getClarifyingSystemPrompt(locale: Locale): string {
   return CLARIFYING_SYSTEM_PROMPTS[locale] ?? CLARIFYING_SYSTEM_PROMPTS.en;
 }
 
-export function buildClarifyingUserPrompt(query: string, locale: Locale): string {
+export function buildClarifyingUserPrompt(
+  query: string,
+  locale: Locale,
+  askedQuestions: string[] = [],
+): string {
   const q = query.trim().slice(0, 300);
+  const history = askedQuestions
+    .map((s) => s.trim().slice(0, 300))
+    .filter((s) => s.length > 0)
+    .slice(-5);
+  const historyDe =
+    history.length > 0
+      ? `\n\nBereits gestellte Fragen — NICHT wiederholen und NICHT nach demselben Merkmal fragen; frage nach einem ANDEREN fehlenden Merkmal:\n${history.map((s) => `- "${s}"`).join("\n")}`
+      : "";
+  const historyEn =
+    history.length > 0
+      ? `\n\nAlready asked — do NOT repeat these and do NOT ask about the same attribute again; ask about a DIFFERENT missing attribute:\n${history.map((s) => `- "${s}"`).join("\n")}`
+      : "";
   return locale === "de"
     ? `Zur Anfrage des Nutzers: "${q}"
 
@@ -93,7 +109,7 @@ Beispiele:
 
 Verallgemeinere: Übersetze für JEDES Produkt und JEDES Merkmal das vage Adjektiv in die messbare Spezifikation (Einheit + Beispielstufen).
 
-Frage bei Bedarf auch nach der Preisspanne (Budget in CHF), wenn sie die Suche sinnvoll eingrenzt.
+Frage bei Bedarf auch nach der Preisspanne (Budget in CHF), wenn sie die Suche sinnvoll eingrenzt.${historyDe}
 
 Stelle EINE Rückfrage auf Deutsch. Erkläre kurz die Einheit und nenne Beispielstufen; halte sie prägnant. Antworte auf Deutsch.`
     : `Given the user request: "${q}"
@@ -107,7 +123,7 @@ Examples:
 
 Generalize: for EVERY product and EVERY attribute, translate the vague adjective into the measurable spec (unit + example levels).
 
-Also ask about the price range (budget in CHF) when it would meaningfully narrow the search.
+Also ask about the price range (budget in CHF) when it would meaningfully narrow the search.${historyEn}
 
 Ask ONE clarifying question in English. Briefly explain the unit and give example levels; keep it concise. Respond in English.`;
 }

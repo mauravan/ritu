@@ -125,7 +125,7 @@ describe("deriveSpecs", () => {
 
     it("uses the German system prompt when locale is de", async () => {
       vi.mocked(generateText).mockResolvedValue({ text: JSON.stringify(validSpec) } as never);
-      await deriveSpecs("laptop for school", undefined, "de");
+      await deriveSpecs("laptop for school", "de");
       const call = vi.mocked(generateText).mock.calls[0][0] as { system: string };
       expect(call.system).toContain("Schweizer Gebrauchtmarkt");
     });
@@ -185,22 +185,6 @@ describe("deriveSpecs", () => {
     it("handles non-Error rejections from both attempts", async () => {
       vi.mocked(generateText).mockRejectedValue("plain string error");
       await expect(deriveSpecs("laptop for school")).rejects.toThrow("All LLM attempts failed");
-    });
-
-    it("includes clarifyingAnswer in prompt", async () => {
-      vi.mocked(generateText).mockResolvedValue({
-        text: JSON.stringify(validSpec),
-      } as never);
-      await deriveSpecs("laptop for school", "budget 800 CHF");
-      expect(generateText).toHaveBeenCalledWith(
-        expect.objectContaining({
-          prompt: expect.stringContaining("Original request: laptop for school"),
-        }),
-      );
-      const call = vi.mocked(generateText).mock.calls[0][0] as {
-        prompt: string;
-      };
-      expect(call.prompt).toContain("Clarifying context from user: budget 800 CHF");
     });
 
     it("truncates input to 500 chars", async () => {
