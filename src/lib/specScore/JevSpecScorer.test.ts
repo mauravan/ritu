@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { JevSpecScorer } from "./JevSpecScorer";
 import type { DerivedSpec, RawProduct } from "../types";
+import { JevSpecScorer } from "./JevSpecScorer";
 
 function makeProduct(overrides: Partial<RawProduct> = {}): RawProduct {
   return {
@@ -30,7 +30,8 @@ function mockFulfills(noul: unknown, status = 200) {
   vi.stubGlobal(
     "fetch",
     vi.fn(
-      async () => new Response(JSON.stringify({ answers: { fulfills: { type: "noul", noul } } }), { status }),
+      async () =>
+        new Response(JSON.stringify({ answers: { fulfills: { type: "noul", noul } } }), { status }),
     ),
   );
 }
@@ -64,7 +65,10 @@ describe("JevSpecScorer", () => {
 
   it("sends the expected request body shape", async () => {
     mockFulfills(0.9);
-    await new JevSpecScorer().score([makeProduct({ id: "p1", title: "Mini PC", condition: "new" })], SPEC);
+    await new JevSpecScorer().score(
+      [makeProduct({ id: "p1", title: "Mini PC", condition: "new" })],
+      SPEC,
+    );
     const fetchMock = vi.mocked(globalThis.fetch);
     expect(fetchMock).toHaveBeenCalledOnce();
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];

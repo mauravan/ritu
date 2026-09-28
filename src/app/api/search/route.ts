@@ -9,12 +9,12 @@ import { runOptionalRerank } from "@/lib/llm/rerank";
 import { logger } from "@/lib/logger";
 import { parseSearchRequest } from "@/lib/parseSearchRequest";
 import { rankProductsUnified } from "@/lib/ranking";
-import { getSpecScoreService } from "@/lib/specScore/SpecScoreService";
 import {
   augmentSearchQueries,
   buildMarketplaceQueries,
   searchMarketplaces,
 } from "@/lib/searchMarketplaces";
+import { getSpecScoreService } from "@/lib/specScore/SpecScoreService";
 import type { DerivedSpec, SearchResult } from "@/lib/types";
 
 export async function POST(req: Request): Promise<Response> {
@@ -82,12 +82,12 @@ export async function POST(req: Request): Promise<Response> {
   );
 
   // Parallel independent spec scoring + rerank
-  const [specScores, rerankScores] = await Promise.all([
+  const [specOutcome, rerankScores] = await Promise.all([
     getSpecScoreService().score(filtered, spec),
     runOptionalRerank(filtered, spec),
   ]);
 
-  const products = rankProductsUnified(filtered, specScores, rerankScores);
+  const products = rankProductsUnified(filtered, specOutcome.scores, rerankScores);
   logger.info(
     `[RITU][SEARCH] ranked=${products.length} top3: ${products
       .slice(0, 3)
@@ -113,6 +113,7 @@ export async function POST(req: Request): Promise<Response> {
     queries,
     products,
     platform,
+    specScoringSource: specOutcome.source,
   };
   return NextResponse.json(result);
 }

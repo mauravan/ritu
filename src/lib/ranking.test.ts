@@ -384,12 +384,15 @@ describe("ranking", () => {
     });
 
     it("merges scorer reasons plus Condition line", () => {
-      const products = [
-        makeProduct({ id: "1", title: "a", priceChf: 500, condition: "new" }),
-      ];
+      const products = [makeProduct({ id: "1", title: "a", priceChf: 500, condition: "new" })];
       const result = rankProductsUnified(
         products,
-        scores([["1", { specScore: 80, matchedRequirements: ["ram: 16gb"], reasons: ["Matches: ram: 16gb"] }]]),
+        scores([
+          [
+            "1",
+            { specScore: 80, matchedRequirements: ["ram: 16gb"], reasons: ["Matches: ram: 16gb"] },
+          ],
+        ]),
       );
       expect(result[0]?.matchedRequirements).toEqual(["ram: 16gb"]);
       expect(result[0]?.reasons).toEqual(["Matches: ram: 16gb", "Condition: new"]);

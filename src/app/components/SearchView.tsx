@@ -102,6 +102,7 @@ export default function SearchView() {
                     setSortBy(b);
                     setSortDir(d);
                   }}
+                  specScoringSource={result.specScoringSource}
                 />
                 {result.products.length === 0 && (
                   <div className="mt-4 p-3 border border-border bg-panel rounded-[2px]">

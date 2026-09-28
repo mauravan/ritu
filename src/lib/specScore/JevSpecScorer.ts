@@ -77,9 +77,7 @@ export class JevSpecScorer implements SpecScorer {
     );
     for (const [id, r] of entries) result.set(id, r);
     if (result.size !== products.length)
-      throw new Error(
-        `Jev spec scoring incomplete: ${result.size}/${products.length}`,
-      );
+      throw new Error(`Jev spec scoring incomplete: ${result.size}/${products.length}`);
     return result;
   }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { DeterministicSpecScorer } from "./DeterministicSpecScorer";
 import type { DerivedSpec, RawProduct } from "../types";
+import { DeterministicSpecScorer } from "./DeterministicSpecScorer";
 
 function makeProduct(overrides: Partial<RawProduct> = {}): RawProduct {
   return {

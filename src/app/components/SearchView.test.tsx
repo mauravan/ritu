@@ -42,6 +42,7 @@ const RESULT: SearchResult = {
   derivedSpec: SPEC,
   queries: QUERIES,
   products: [mkProduct("p1", "Mini PC Alpha", "ricardo"), mkProduct("p2", "Mini PC Beta", "tutti")],
+  specScoringSource: "deterministic",
 };
 
 describe("SearchView", () => {

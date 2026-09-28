@@ -22,7 +22,7 @@ function tokenize(text: string): string[] {
   return text
     .toLowerCase()
     .split(/[^a-z0-9]+/g)
-    .filter((t) => t.length > 1 && !STOPWORDS[t]);
+    .filter((t) => t.length > 1 && STOPWORDS[t] !== true);
 }
 
 function keywordsFromSpec(spec: DerivedSpec): string[] {

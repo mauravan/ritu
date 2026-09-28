@@ -1,3 +1,5 @@
+import type { SpecScoringSource } from "./specScore/SpecScorer";
+
 export type DerivedSpec = {
   category: string;
   summary: string;
@@ -60,6 +62,7 @@ export type SearchResult = {
   queries: MarketplaceQuery[];
   products: RankedProduct[];
   platform?: Platform;
+  specScoringSource: SpecScoringSource;
 };
 
 export type SortBy = "spec" | "value" | "ai" | "hybrid" | "price";

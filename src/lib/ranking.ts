@@ -1,6 +1,6 @@
 import type { RerankResult } from "./llm/rerank";
-import type { RankedProduct, RawProduct, Tag } from "./types";
 import type { SpecScoreResult } from "./specScore/SpecScorer";
+import type { RankedProduct, RawProduct, Tag } from "./types";
 
 export function tagExplanation(tag: Tag): string {
   switch (tag) {

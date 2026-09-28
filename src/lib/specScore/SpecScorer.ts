@@ -9,3 +9,10 @@ export interface SpecScoreResult {
 export interface SpecScorer {
   score(products: RawProduct[], spec: DerivedSpec): Promise<Map<string, SpecScoreResult>>;
 }
+
+export type SpecScoringSource = "jev" | "deterministic";
+
+export interface SpecScoreOutcome {
+  scores: Map<string, SpecScoreResult>;
+  source: SpecScoringSource;
+}

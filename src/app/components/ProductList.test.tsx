@@ -1,11 +1,14 @@
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RankedProduct } from "@/lib/types";
 import ProductList from "./ProductList";
 
 vi.mock("./useLocale", () => ({
   default: () => ["en" as const, () => {}],
 }));
+
+afterEach(() => cleanup());
 
 function mkRanked(
   overrides: Partial<RankedProduct> & { id: string; title: string },
@@ -34,6 +37,7 @@ function renderList(products: RankedProduct[]) {
       sortBy="hybrid"
       sortDir="desc"
       onSortChange={() => undefined}
+      specScoringSource="deterministic"
     />,
   );
 }
@@ -228,5 +232,34 @@ describe("ProductList", () => {
     );
     const html = renderList(products);
     expect(html).toContain("Ranked Products");
+  });
+
+  it("renders AI spec tooltip when jev source", () => {
+    window.localStorage.setItem("locale", "en");
+    Object.defineProperty(window, "innerWidth", { value: 1000, configurable: true });
+    Object.defineProperty(window, "innerHeight", { value: 800, configurable: true });
+    vi.spyOn(HTMLButtonElement.prototype, "getBoundingClientRect").mockReturnValue({
+      left: 100,
+      width: 40,
+      top: 100,
+      bottom: 120,
+      height: 20,
+      right: 140,
+      x: 100,
+      y: 100,
+      toJSON: () => ({}),
+    } as unknown as DOMRect);
+    const products = [mkRanked({ id: "p1", title: "Mini PC" })];
+    render(
+      <ProductList
+        products={products}
+        sortBy="hybrid"
+        sortDir="desc"
+        onSortChange={() => undefined}
+        specScoringSource="jev"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Spec score" }));
+    expect(screen.getByRole("dialog").textContent).toContain("Jev model");
   });
 });

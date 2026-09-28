@@ -107,6 +107,7 @@ describe("schemas contracts", () => {
             reasons: [],
           },
         ],
+        specScoringSource: "deterministic",
       }).success,
     ).toBe(true);
   });
