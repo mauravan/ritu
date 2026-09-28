@@ -59,6 +59,7 @@ export const SearchResultSchema = z
     queries: z.array(MarketplaceQuerySchema),
     products: z.array(RankedProductSchema),
     platform: z.enum(["both", "ricardo", "tutti"]).optional(),
+    specScoringSource: z.enum(["jev", "deterministic"]),
   })
   .strict();
 

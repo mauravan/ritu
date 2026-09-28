@@ -20,6 +20,7 @@
   "footer_note": "Results from ricardo.ch & tutti.ch, not affiliated",
   "tooltip_spec_title": "Spec score",
   "tooltip_spec_text": "Token hits: required +20, preferred +10; raw hits +10/+5; keywords +2; category +10; GPU signal bonuses; penalties: excluded term in title −25, numeric miss −10/−15; clamped 1-100.",
+  "tooltip_spec_ai_text": "AI-assessed fit: the Jev model rates how well the listing fulfills your requirements and respects exclusions, scaled 0-100.",
   "tooltip_value_title": "Value score",
   "tooltip_value_text": "specScore / priceChf (price null → 0), batch scaled to 1-100.",
   "tooltip_ai_title": "AI relevance",

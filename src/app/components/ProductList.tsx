@@ -3,6 +3,7 @@
 import { memo, useMemo } from "react";
 import de from "@/dictionaries/de.json";
 import en from "@/dictionaries/en.json";
+import type { SpecScoringSource } from "@/lib/specScore/SpecScorer";
 import type { RankedProduct, SortBy, SortDir, Tag } from "@/lib/types";
 import ListingDescription from "./ListingDescription";
 import ListingGallery from "./ListingGallery";
@@ -54,6 +55,7 @@ type DerivedItem = {
   total: number;
   hasHybrid: boolean;
   hasRelevance: boolean;
+  specScoringSource: SpecScoringSource;
 };
 
 function translateReason(r: string, dict: typeof en): string {
@@ -65,12 +67,12 @@ function translateReason(r: string, dict: typeof en): string {
     return r.replace("Penalty: numeric mismatch", dict.penalty_numeric_mismatch);
   return r;
 }
-
 const ProductItem = memo(function ProductItem({
   p,
   idx,
   hasHybrid,
   hasRelevance,
+  specScoringSource,
   dict,
 }: DerivedItem & { dict: typeof en }) {
   const zeroIndex = String(idx + 1).padStart(3, "0");
@@ -146,7 +148,10 @@ const ProductItem = memo(function ProductItem({
           <div className="flex items-center gap-2 text-xs">
             <span className="w-24 shrink-0 text-text-secondary">
               {dict.spec_label}
-              <Tooltip titleKey="tooltip_spec_title" textKey="tooltip_spec_text" />
+              <Tooltip
+                titleKey="tooltip_spec_title"
+                textKey={specScoringSource === "jev" ? "tooltip_spec_ai_text" : "tooltip_spec_text"}
+              />
             </span>
             <div className="flex-1 h-2 rounded-[2px] bg-canvas border border-border overflow-hidden">
               <div
@@ -249,11 +254,13 @@ export default function ProductList({
   sortBy,
   sortDir,
   onSortChange,
+  specScoringSource,
 }: {
   products: RankedProduct[];
   sortBy: SortBy;
   sortDir: SortDir;
   onSortChange: (by: SortBy, dir: SortDir) => void;
+  specScoringSource: SpecScoringSource;
 }) {
   const [locale] = useLocale();
   const dict = (dictionaries[locale] || dictionaries.de) as typeof en;
@@ -269,9 +276,10 @@ export default function ProductList({
         total,
         hasHybrid: p.hybridScore !== undefined,
         hasRelevance: p.relevance !== undefined,
+        specScoringSource,
       } as DerivedItem;
     });
-  }, [display, total]);
+  }, [display, total, specScoringSource]);
 
   if (total === 0) {
     return <p className="text-xs text-text-secondary">{dict.no_products_found_message}</p>;

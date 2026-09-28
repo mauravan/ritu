@@ -10,6 +10,11 @@ import { POST } from "./route";
 vi.mock("@/lib/llm/deriveSpecs", () => ({ deriveSpecs: vi.fn() }));
 vi.mock("@/lib/jev/decideSearch", () => ({ decideSearchAction: vi.fn(async () => "search") }));
 vi.mock("@/lib/llm/rerank", () => ({ runOptionalRerank: vi.fn(async () => undefined) }));
+vi.mock("@/lib/specScore/SpecScoreService", () => ({
+  getSpecScoreService: vi.fn(() => ({
+    score: vi.fn(async () => ({ scores: new Map(), source: "deterministic" })),
+  })),
+}));
 vi.mock("@/lib/llm/askClarifying", () => ({
   askClarifyingQuestion: vi.fn(async () => "What size?"),
 }));
@@ -65,11 +70,13 @@ describe("search route contracts", () => {
       derivedSpec: DerivedSpec;
       queries: unknown[];
       products: unknown[];
+      specScoringSource: string;
     };
     expect(json.input).toBe("mini pc");
     expect(json.derivedSpec.category).toBe("Mini PC");
     expect(json.queries.length).toBeGreaterThanOrEqual(1);
     expect(json.products.length).toBe(2);
+    expect(json.specScoringSource).toBe("deterministic");
     expect(decideSearchAction).toHaveBeenCalledWith("mini pc");
     expect(deriveSpecs).toHaveBeenCalledOnce();
     expect(deriveSpecs).toHaveBeenCalledWith("mini pc", "de");

@@ -1,120 +1,6 @@
-import { applyNumericFilter } from "./numericFilter";
-import type { DerivedSpec, RankedProduct, RawProduct, Tag } from "./types";
-
-const STOPWORDS = new Set([
-  "mit",
-  "für",
-  "und",
-  "the",
-  "for",
-  "with",
-  "a",
-  "an",
-  "und",
-  "der",
-  "die",
-  "das",
-]);
-
-const EXCLUDED_TERM_PENALTY = -25;
-
-function tokenize(text: string): string[] {
-  return text
-    .toLowerCase()
-    .split(/[^a-z0-9]+/g)
-    .filter((t) => t.length > 1 && !STOPWORDS.has(t));
-}
-
-function keywordsFromSpec(spec: DerivedSpec): string[] {
-  const all = [...spec.requirements.map((r) => r.value), ...spec.searchQueries, spec.category].join(
-    " ",
-  );
-  return tokenize(all);
-}
-
-// ---------------------------------------------------------------------------
-// GPU ranking algorithm (restored)
-// ---------------------------------------------------------------------------
-function isGpuRequirement(value: string): boolean {
-  return /\b(gtx|rtx)\b/i.test(value) && /\b\d{3,4}\b/.test(value);
-}
-function extractGpuNumber(text: string): number | null {
-  const m = text.match(/\b(gtx|rtx)\s*(\d{3,4})\b/i);
-  return m ? parseInt(m[2] as string, 10) : null;
-}
-
-// ---------------------------------------------------------------------------
-// Extensibility: signal registry (future-proof for comparative ranking)
-// ---------------------------------------------------------------------------
-/**
- * To add a new signal: implement `RankingSignal`, register with
- * `signalRegistry.set(name, signal)`. Default weight is 0; update weights
- * in `route.ts` or pass `weights` to `rankProductsUnified` to activate.
- */
-/** Singleton — ensures single signal registry instance across ranking modules. */
-export class SignalRegistry {
-  private static instance: SignalRegistry;
-  private registry: Map<string, RankingSignal>;
-
-  private constructor() {
-    this.registry = new Map<string, RankingSignal>();
-  }
-
-  public static getInstance(): SignalRegistry {
-    if (!SignalRegistry.instance) {
-      SignalRegistry.instance = new SignalRegistry();
-    }
-    return SignalRegistry.instance;
-  }
-
-  register(name: string, signal: RankingSignal): void {
-    this.registry.set(name, signal);
-  }
-
-  set(name: string, signal: RankingSignal): void {
-    this.registry.set(name, signal);
-  }
-
-  [Symbol.iterator](): IterableIterator<[string, RankingSignal]> {
-    return this.registry.entries();
-  }
-}
-
-export const signalRegistry = SignalRegistry.getInstance();
-signalRegistry.set("gpu", {
-  name: "gpu",
-  select: (spec: DerivedSpec) => spec.requirements.some((r) => isGpuRequirement(r.value)),
-  compare: (spec: DerivedSpec, products: RawProduct[]): Map<string, number> => {
-    const requiredGpu = spec.requirements
-      .filter((r) => isGpuRequirement(r.value))
-      .map((r) => extractGpuNumber(r.value))
-      .filter((n): n is number => n !== null);
-    const bestRequired = Math.max(...requiredGpu);
-    const result = new Map<string, number>();
-    for (const product of products) {
-      const titleGpu = extractGpuNumber(product.title.toLowerCase());
-      const rawTextLower =
-        typeof product.raw === "string"
-          ? product.raw.toLowerCase()
-          : JSON.stringify(product.raw ?? "").toLowerCase();
-      const rawGpu = extractGpuNumber(rawTextLower);
-      const productGpu = titleGpu !== null ? titleGpu : rawGpu !== null ? rawGpu : null;
-      if (productGpu === null) {
-        result.set(product.id, 0);
-        continue;
-      }
-      const pSeries = Math.floor(productGpu / 100);
-      const pModel = productGpu % 100;
-      const rSeries = Math.floor(bestRequired / 100);
-      const rModel = bestRequired % 100;
-      let comparison: number;
-      if (pSeries !== rSeries) comparison = pSeries - rSeries;
-      else comparison = pModel - rModel;
-      result.set(product.id, comparison >= 0 ? 5 : -5);
-    }
-    return result;
-  },
-});
+import type { RerankResult } from "./llm/rerank";
+import type { SpecScoreResult } from "./specScore/SpecScorer";
+import type { RankedProduct, RawProduct, Tag } from "./types";
 
 export function tagExplanation(tag: Tag): string {
   switch (tag) {
@@ -135,128 +21,30 @@ export function tagExplanation(tag: Tag): string {
   }
 }
 
-function excludedTermPenalties(products: RawProduct[], spec: DerivedSpec): Map<string, string> {
-  const matches = new Map<string, string>();
-  const terms = (spec.excludedTerms ?? [])
-    .map((t) => t.toLowerCase().trim())
-    .filter((t) => t.length > 0);
-  if (terms.length === 0) return matches;
-  for (const p of products) {
-    const title = p.title.toLowerCase();
-    const hit = terms.find((t) => title.includes(t));
-    if (hit) matches.set(p.id, hit);
-  }
-  return matches;
-}
-
 export function rankProductsUnified(
   products: RawProduct[],
-  spec: DerivedSpec,
-  rerankScores?: Map<string, import("./llm/rerank").RerankResult>,
+  specScores: Map<string, SpecScoreResult>,
+  rerankScores?: Map<string, RerankResult>,
 ): RankedProduct[] {
-  let weights: Record<string, number> = {};
-  try {
-    const envWeights = process.env.RANKING_SIGNAL_WEIGHTS;
-    if (envWeights) weights = JSON.parse(envWeights) as Record<string, number>;
-  } catch {
-    weights = {};
-  }
-  const candidates = products;
-  // Display-all mode: numeric mismatches only penalize scores; nothing is excluded.
-  const { penalties: numericPenalties, penaltyFields } = applyNumericFilter(candidates, spec);
-  const excludedPenalties = excludedTermPenalties(candidates, spec);
-  const filteredCandidates = candidates;
-  // 2. Compute specScore (same logic as rankProducts)
-  const keywords = keywordsFromSpec(spec);
-  const requirementTokens = spec.requirements.map((r) => ({
-    tokens: tokenize(r.value),
-    importance: r.importance,
-    key: r.key,
-    value: r.value,
-  }));
-  const compareResultsBySignal = new Map<string, Map<string, number>>();
-  for (const [, signal] of signalRegistry) {
-    const applies = filteredCandidates.some((pr) => signal.select(spec, pr));
-    if (applies) {
-      const res = signal.compare(spec, filteredCandidates);
-      compareResultsBySignal.set(signal.name, res);
-    }
-  }
-  const scored = filteredCandidates.map((p) => {
-    const titleLower = p.title.toLowerCase();
-    const rawText =
-      typeof p.raw === "string" ? p.raw.toLowerCase() : JSON.stringify(p.raw ?? "").toLowerCase();
-    let score = 0;
-    const matchedRequirements: string[] = [];
-
-    for (const req of requirementTokens) {
-      let hit = false;
-      for (const tok of req.tokens) {
-        if (titleLower.includes(tok)) {
-          score += req.importance === "required" ? 20 : 10;
-          hit = true;
-          break;
-        } else if (rawText.includes(tok)) {
-          score += req.importance === "required" ? 10 : 5;
-          hit = true;
-          break;
-        }
-      }
-      if (hit) matchedRequirements.push(`${req.key}: ${req.value}`);
-    }
-
-    for (const kw of keywords) {
-      if (titleLower.includes(kw)) score += 2;
-    }
-    if (titleLower.includes(spec.category.toLowerCase())) score += 10;
-
-    // Domain algorithm bonuses (rankingAlgorithms integrated via signalRegistry)
-    for (const [, signal] of signalRegistry) {
-      if (signal.select(spec, p)) {
-        const weight = (weights[signal.name] ?? 1) as number;
-        const compareRes = compareResultsBySignal.get(signal.name);
-        if (compareRes?.has(p.id)) {
-          const compareValue = (compareRes.get(p.id) ?? 0) * weight;
-          if (compareValue !== 0) {
-            score += compareValue;
-          }
-        }
-      }
-    }
-    const penalty =
-      (numericPenalties.get(p.id) ?? 0) + (excludedPenalties.has(p.id) ? EXCLUDED_TERM_PENALTY : 0);
-    if (penalty !== 0) score += penalty;
-
-    const specScore = Math.min(100, Math.max(1, score));
-    return { product: p, specScore, matchedRequirements };
-  });
-  const withValue = scored.map((s) => {
-    let valueScore: number;
-    if (s.product.priceChf === null) {
-      valueScore = 0;
-    } else {
-      valueScore = s.specScore / (s.product.priceChf || 1);
-    }
-    return { ...s, valueScore };
+  const withValue = products.map((p) => {
+    const sr = specScores.get(p.id);
+    const specScore = sr?.specScore ?? 50;
+    const matchedRequirements = sr?.matchedRequirements ?? [];
+    const reasons = [...(sr?.reasons ?? [])];
+    const valueScore = p.priceChf === null ? 0 : specScore / (p.priceChf || 1);
+    return { product: p, specScore, matchedRequirements, reasons, valueScore };
   });
 
   const valueScoresArr = withValue.map((w) => w.valueScore);
   const valueMin = Math.min(...valueScoresArr);
   const valueMax = Math.max(...valueScoresArr);
-  const specMin = Math.min(...scored.map((s) => s.specScore));
-  const specMax = Math.max(...scored.map((s) => s.specScore));
   const scaledResults = withValue.map((w) => {
-    const scaledSpec =
-      specMax === specMin
-        ? 100
-        : Math.round(1 + (99 * (w.specScore - specMin)) / (specMax - specMin));
     const scaledValue =
       valueMax === valueMin
         ? 100
         : Math.round(1 + (99 * (w.valueScore - valueMin)) / (valueMax - valueMin));
     return {
       ...w,
-      specScore: Math.max(1, Math.min(100, scaledSpec)),
       valueScore: Math.max(1, Math.min(100, scaledValue)),
     };
   });
@@ -297,7 +85,7 @@ export function rankProductsUnified(
       specScore: Math.round(specScore),
       valueScore: Math.round(valueScore * 100) / 100,
       matchedRequirements: w.matchedRequirements,
-      reasons: [] as string[],
+      reasons: w.reasons,
       tags: [] as Tag[],
       relevance,
       hybridScore,
@@ -313,13 +101,6 @@ export function rankProductsUnified(
 
   // 7. Fill reasons
   for (const r of enriched) {
-    if (r.matchedRequirements.length)
-      r.reasons.push(`Matches: ${r.matchedRequirements.join(", ")}`);
-    const exclTerm = excludedPenalties.get(r.id);
-    if (exclTerm) r.reasons.push(`Penalty: excluded term "${exclTerm}"`);
-    const numericFields = penaltyFields.get(r.id);
-    if (numericFields?.length)
-      r.reasons.push(`Penalty: numeric mismatch (${numericFields.join(", ")})`);
     if (r.condition) r.reasons.push(`Condition: ${r.condition}`);
   }
 
@@ -434,6 +215,3 @@ export function rankProductsUnified(
   }
   return enriched;
 }
-
-// Test exports
-export { extractGpuNumber, isGpuRequirement, keywordsFromSpec, tokenize };

@@ -14,6 +14,7 @@ import {
   buildMarketplaceQueries,
   searchMarketplaces,
 } from "@/lib/searchMarketplaces";
+import { getSpecScoreService } from "@/lib/specScore/SpecScoreService";
 import type { DerivedSpec, SearchResult } from "@/lib/types";
 
 export async function POST(req: Request): Promise<Response> {
@@ -80,11 +81,13 @@ export async function POST(req: Request): Promise<Response> {
     `[RITU][SEARCH] distance filter ${raw.length} -> ${filtered.length} (zip=${zipCode}, radius=${radius}km)`,
   );
 
-  // Parallel independent rerank
-  const rerankPromise = runOptionalRerank(filtered, spec);
-  const rerankScores = await rerankPromise;
+  // Parallel independent spec scoring + rerank
+  const [specOutcome, rerankScores] = await Promise.all([
+    getSpecScoreService().score(filtered, spec),
+    runOptionalRerank(filtered, spec),
+  ]);
 
-  const products = rankProductsUnified(filtered, spec, rerankScores);
+  const products = rankProductsUnified(filtered, specOutcome.scores, rerankScores);
   logger.info(
     `[RITU][SEARCH] ranked=${products.length} top3: ${products
       .slice(0, 3)
@@ -110,6 +113,7 @@ export async function POST(req: Request): Promise<Response> {
     queries,
     products,
     platform,
+    specScoringSource: specOutcome.source,
   };
   return NextResponse.json(result);
 }
