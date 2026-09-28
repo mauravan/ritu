@@ -9,6 +9,7 @@ import { runOptionalRerank } from "@/lib/llm/rerank";
 import { logger } from "@/lib/logger";
 import { parseSearchRequest } from "@/lib/parseSearchRequest";
 import { rankProductsUnified } from "@/lib/ranking";
+import { getSpecScoreService } from "@/lib/specScore/SpecScoreService";
 import {
   augmentSearchQueries,
   buildMarketplaceQueries,
@@ -80,11 +81,13 @@ export async function POST(req: Request): Promise<Response> {
     `[RITU][SEARCH] distance filter ${raw.length} -> ${filtered.length} (zip=${zipCode}, radius=${radius}km)`,
   );
 
-  // Parallel independent rerank
-  const rerankPromise = runOptionalRerank(filtered, spec);
-  const rerankScores = await rerankPromise;
+  // Parallel independent spec scoring + rerank
+  const [specScores, rerankScores] = await Promise.all([
+    getSpecScoreService().score(filtered, spec),
+    runOptionalRerank(filtered, spec),
+  ]);
 
-  const products = rankProductsUnified(filtered, spec, rerankScores);
+  const products = rankProductsUnified(filtered, specScores, rerankScores);
   logger.info(
     `[RITU][SEARCH] ranked=${products.length} top3: ${products
       .slice(0, 3)

@@ -8,8 +8,8 @@ import type { DerivedSpec, RawProduct } from "@/lib/types";
 import { POST } from "./route";
 
 vi.mock("@/lib/llm/deriveSpecs", () => ({ deriveSpecs: vi.fn() }));
-vi.mock("@/lib/jev/decideSearch", () => ({ decideSearchAction: vi.fn(async () => "search") }));
 vi.mock("@/lib/llm/rerank", () => ({ runOptionalRerank: vi.fn(async () => undefined) }));
+vi.mock("@/lib/specScore/SpecScoreService", () => ({ getSpecScoreService: vi.fn(() => ({ score: vi.fn(async () => new Map()) })) }));
 vi.mock("@/lib/llm/askClarifying", () => ({
   askClarifyingQuestion: vi.fn(async () => "What size?"),
 }));

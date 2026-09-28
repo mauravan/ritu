@@ -12,9 +12,9 @@ Browser → `src/app/api/search/route.ts`
 6. Parallel fetch: `Promise.allSettled` for `searchRicardo` / `searchTutti` (20 limit each). Rejected excluded; fulfilled aggregated.
 7. Aggregate: `aggregate` (`src/lib/aggregate.ts`) — dedup by `normalizeTitle(title)|priceChf` (keep cheapest), then by `marketplace:id`.
 8. LLM rerank (optional): `rerankWithLLM` (`src/lib/llm/rerank.ts`) — `generateObject` with `RerankSchema`, capped at `LLM_RERANK_MAX_BATCH` (default 40), timeout 15000ms; returns `Map<id, RerankResult>`. Empty or error falls back to deterministic ranking.
-9. Rank: `rankProductsUnified` (`src/lib/ranking.ts`) — `specScore` (keyword/token match + signal bonuses), `valueScore` (spec / price), scaled 1–100; hybrid `0.35 spec + 0.25 value + LLM weight` (LLM present: weight = `1 - 0.35 - 0.25`; else weights redistribute to 0.6/0.4). Sort by hybrid → value → spec.
-10. Tags (`Tag`): `best specs` (max spec), `best value` (max value, different index preferred), `cheapest` (price < others with spec ≥40), `best condition` (`new`/`neu` with spec ≥50), `balanced` (harmonic mean among untagged, ≥4 products), `best overall` (max hybrid, untagged preferred). `signalRegistry` holds `gpu` signal (compare via series/model, ±5).
-11. Return `SearchResultSchema`: input, derivedSpec, queries, products (max 40), platform. Clarify path returns `{ clarifyingQuestion }` instead.
+9. Spec score: `getSpecScoreService()` (`src/lib/specScore/SpecScoreService.ts`) — primary `JevSpecScorer` asks `typesafe/jev-1.13` via the OpenRouter Decisions API (one `fulfills` noul question per listing, `specScore = clamp(round(noul * 100), 1, 100)`); on missing `LLM_API_KEY`, any Jev error, or partial results it falls back to `DeterministicSpecScorer` (token/keyword match + GPU compare ±5 + numeric/excluded-term penalties, batch-scaled 1–100). Env: `LLM_API_KEY`, `JEV_MODEL`, `JEV_SPEC_CONCURRENCY` (default 4), `JEV_SPEC_TIMEOUT_MS` (default 15000), `RANKING_SIGNAL_WEIGHTS` (gpu weight, deterministic path only).
+10. Rank: `rankProductsUnified` (`src/lib/ranking.ts`) — pure ranking over the precomputed spec-score map (`specScore` used as-is, never re-scaled); `valueScore` (spec / price), scaled 1–100; hybrid `0.35 spec + 0.25 value + LLM weight` (LLM present: weight = `1 - 0.35 - 0.25`; else weights redistribute to 0.6/0.4). Sort by hybrid → value → spec.
+11. Tags (`Tag`): `best specs` (max spec), `best value` (max value, different index preferred), `cheapest` (price < others with spec ≥40), `best condition` (`new`/`neu` with spec ≥50), `balanced` (harmonic mean among untagged, ≥4 products), `best overall` (max hybrid, untagged preferred).
 
 ## LLM modules (`src/lib/llm/`)
 
@@ -29,11 +29,16 @@ Browser → `src/app/api/search/route.ts`
 - `tutti`: `tutti-api` (`TuttiClient`) GraphQL only (no Playwright fallback). `searchTuttiViaApi` with 8000ms race timeout; parses `formattedPrice` (CHF-prefixed or `650.-` form) via regex. Normalizes image URL (`//` → `https:`, `/` → `https://www.tutti.ch`). Throws on 429/1015 for retry. Env rate limits apply.
 - `index.ts`: `MarketplaceAdapter` interface (`search`, `buildUrl`).
 
+## Spec scoring (`src/lib/specScore/`)
+
+ - `SpecScorer` interface (`SpecScorer.ts`): `score(products, spec)` → `Map<productId, SpecScoreResult>` (`specScore` final 0–100, `matchedRequirements`, `reasons`).
+ - `JevSpecScorer`: primary; one Decisions `fulfills` noul question per listing (concurrency `JEV_SPEC_CONCURRENCY`, timeout `JEV_SPEC_TIMEOUT_MS`, raw truncated to 2000 chars).
+ - `DeterministicSpecScorer`: fallback; token/keyword match + GPU compare (±5, weight from `RANKING_SIGNAL_WEIGHTS`) + numeric/excluded-term penalties, batch-scaled 1–100.
+ - `SpecScoreService` (`getSpecScoreService`): primary, fallback on missing key / error / partial map.
+
 ## Ranking (`src/lib/ranking.ts`)
 
-- `keywordsFromSpec`: tokenizes requirements + queries + category (stopwords removed).
-- `signalRegistry`: `gpu` registered; extensible (`RankingSignal`: `select`, `score`, `compare`). Weights from `RANKING_SIGNAL_WEIGHTS` env JSON.
-- `rankProductsUnified`: computes `specScore`, `valueScore`, scaled; applies compare signals; computes hybrid; tags; sorts.
+ - `rankProductsUnified(products, specScores, rerankScores?)`: pure ranking over precomputed scores — value scale, hybrid weights, `Condition:` reason, tags, sort.
 
 ## Aggregation (`src/lib/aggregate.ts`)
 

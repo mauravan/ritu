@@ -4,4 +4,7 @@
 
 - `deriveSpecs`: structured validation (`DerivedSpecSchema`) via `generateObject` (openrouter/gpt-4o-mini default), with `generateText` JSON fallback; throws `ValidationError` / `SpecDerivationError`.
 - GPU ranking restoration: `signalRegistry` with `gpu` compare (series/model, ±5); `rankProductsUnified` computes `specScore`, `valueScore`, scaled hybrid; tags (`best specs`, `best value`, `cheapest`, `best condition`, `balanced`, `best overall`).
-- Rate limit module (`src/lib/marketplaces/rateLimit.ts`): `p-limit` concurrency, token-bucket throttle, retry with 429/1015 detection and `Retry-After` parsing; env-configurable (`RICARDO_*` / `TUTTI_*` / `RATE_LIMIT_*`).
+
+## Unreleased
+
+- Spec scoring via Jev (`src/lib/specScore/`): `JevSpecScorer` (primary, `typesafe/jev-1.13` Decisions `fulfills` noul → `specScore`) with `DeterministicSpecScorer` fallback behind `SpecScoreService` (`getSpecScoreService`); `rankProductsUnified(products, specScores, rerankScores?)` is now pure ranking (no spec computation, no `SignalRegistry`); route scores spec + rerank in parallel.
