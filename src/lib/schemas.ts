@@ -15,7 +15,7 @@ export const DerivedSpecSchema = z
     ),
     searchQueries: z
       .array(z.string())
-      .describe("2 short marketplace search terms, primary product only"),
+      .describe("2-4 short marketplace search terms, primary product only"),
     excludedTerms: z.array(z.string()).describe("accessory terms to exclude, 5-10 terms"),
   })
   .strict();
