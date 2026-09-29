@@ -1,14 +1,15 @@
-"use client";
-
 import { memo, useMemo } from "react";
 import de from "@/dictionaries/de.json";
 import en from "@/dictionaries/en.json";
+import { type FavoriteListing, toFavoriteListing } from "@/lib/favorites";
 import type { SpecScoringSource } from "@/lib/specScore/SpecScorer";
 import type { RankedProduct, SortBy, SortDir, Tag } from "@/lib/types";
+import FavoriteButton from "./FavoriteButton";
 import ListingDescription from "./ListingDescription";
 import ListingGallery from "./ListingGallery";
 import SortSelect from "./SortSelect";
 import Tooltip from "./Tooltip";
+import { type FavoriteLookup, favoriteListingKey } from "./useFavorites";
 import useLocale from "./useLocale";
 
 const dictionaries = { de, en } as const;
@@ -56,6 +57,8 @@ type DerivedItem = {
   hasHybrid: boolean;
   hasRelevance: boolean;
   specScoringSource: SpecScoringSource;
+  listing: FavoriteListing;
+  favoriteId: string | null;
 };
 
 function translateReason(r: string, dict: typeof en): string {
@@ -73,8 +76,18 @@ const ProductItem = memo(function ProductItem({
   hasHybrid,
   hasRelevance,
   specScoringSource,
+  listing,
+  favoriteId,
+  categories,
+  onAddFavorite,
+  onRemoveFavorite,
   dict,
-}: DerivedItem & { dict: typeof en }) {
+}: DerivedItem & {
+  categories: string[];
+  onAddFavorite: (listing: FavoriteListing, category: string) => void;
+  onRemoveFavorite: (favoriteId: string) => void;
+  dict: typeof en;
+}) {
   const zeroIndex = String(idx + 1).padStart(3, "0");
   const sourceLabel = String(dict.source_label ?? "source");
 
@@ -97,9 +110,19 @@ const ProductItem = memo(function ProductItem({
             <span className="text-text-secondary font-mono mr-1">[{zeroIndex}]</span>
             {p.title}
           </a>
-          <span className="shrink-0 text-xs rounded-[2px] border border-border bg-canvas px-1.5 py-0.5 text-text-secondary">
-            {sourceLabel}: <span className="text-text-primary font-medium">{p.marketplace}</span>
-          </span>
+          <div className="shrink-0 flex items-center gap-1.5">
+            <FavoriteButton
+              listing={listing}
+              favoriteId={favoriteId}
+              categories={categories}
+              onAdd={onAddFavorite}
+              onRemove={onRemoveFavorite}
+              dict={dict}
+            />
+            <span className="text-xs rounded-[2px] border border-border bg-canvas px-1.5 py-0.5 text-text-secondary">
+              {sourceLabel}: <span className="text-text-primary font-medium">{p.marketplace}</span>
+            </span>
+          </div>
         </div>
 
         <div className="text-xs sm:text-sm flex flex-wrap items-baseline gap-2">
@@ -255,12 +278,20 @@ export default function ProductList({
   sortDir,
   onSortChange,
   specScoringSource,
+  favoriteLookup,
+  categories,
+  onAddFavorite,
+  onRemoveFavorite,
 }: {
   products: RankedProduct[];
   sortBy: SortBy;
   sortDir: SortDir;
   onSortChange: (by: SortBy, dir: SortDir) => void;
   specScoringSource: SpecScoringSource;
+  favoriteLookup: FavoriteLookup;
+  categories: string[];
+  onAddFavorite: (listing: FavoriteListing, category: string) => void;
+  onRemoveFavorite: (favoriteId: string) => void;
 }) {
   const [locale] = useLocale();
   const dict = (dictionaries[locale] || dictionaries.de) as typeof en;
@@ -277,10 +308,11 @@ export default function ProductList({
         hasHybrid: p.hybridScore !== undefined,
         hasRelevance: p.relevance !== undefined,
         specScoringSource,
+        listing: toFavoriteListing(p),
+        favoriteId: favoriteLookup.get(favoriteListingKey(p.marketplace, p.id)) ?? null,
       } as DerivedItem;
     });
-  }, [display, total, specScoringSource]);
-
+  }, [display, total, specScoringSource, favoriteLookup]);
   if (total === 0) {
     return <p className="text-xs text-text-secondary">{dict.no_products_found_message}</p>;
   }
@@ -311,7 +343,14 @@ export default function ProductList({
 
       <div>
         {mapped.map((item) => (
-          <ProductItem key={`${item.p.marketplace}-${item.p.id}`} {...item} dict={dict} />
+          <ProductItem
+            key={`${item.p.marketplace}-${item.p.id}`}
+            {...item}
+            categories={categories}
+            onAddFavorite={onAddFavorite}
+            onRemoveFavorite={onRemoveFavorite}
+            dict={dict}
+          />
         ))}
       </div>
     </div>

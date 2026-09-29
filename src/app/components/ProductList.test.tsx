@@ -38,6 +38,10 @@ function renderList(products: RankedProduct[]) {
       sortDir="desc"
       onSortChange={() => undefined}
       specScoringSource="deterministic"
+      favoriteLookup={new Map()}
+      categories={[]}
+      onAddFavorite={() => undefined}
+      onRemoveFavorite={() => undefined}
     />,
   );
 }
@@ -257,6 +261,10 @@ describe("ProductList", () => {
         sortDir="desc"
         onSortChange={() => undefined}
         specScoringSource="jev"
+        favoriteLookup={new Map()}
+        categories={[]}
+        onAddFavorite={() => undefined}
+        onRemoveFavorite={() => undefined}
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: "Spec score" }));
