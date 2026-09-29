@@ -68,7 +68,7 @@ describe("SearchView", () => {
     fireEvent.change(screen.getByRole("textbox", { name: /what are you looking for/i }), {
       target: { value: "mini pc" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /search$/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
     await waitFor(() => expect(screen.getByRole("link", { name: /Mini PC Alpha/ })).toBeDefined());
     expect(screen.getByRole("link", { name: /Mini PC Beta/ })).toBeDefined();
     expect(screen.getByText("Compact desktop")).toBeDefined();
@@ -81,7 +81,7 @@ describe("SearchView", () => {
     fireEvent.change(screen.getByRole("textbox", { name: /what are you looking for/i }), {
       target: { value: "mini pc" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /search$/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
     await waitFor(() => expect(screen.getByText("spec_derivation_failed: boom")).toBeDefined());
   });
 });
@@ -100,7 +100,7 @@ describe("SearchView branches", () => {
     fireEvent.change(screen.getByRole("textbox", { name: /what are you looking for/i }), {
       target: { value: "mini pc" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /search$/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
   }
 
   it("shows no-products message for empty result", async () => {
@@ -149,7 +149,7 @@ describe("SearchView branches", () => {
     fireEvent.change(screen.getByRole("textbox", { name: /what are you looking for/i }), {
       target: { value: "mini pc" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /search$/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
     await waitFor(() => expect(screen.getByText("What size?")).toBeDefined());
   });
 });
