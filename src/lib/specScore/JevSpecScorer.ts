@@ -5,6 +5,7 @@ import type { SpecScoreResult, SpecScorer } from "./SpecScorer";
 export const DECISIONS_URL = "https://openrouter.ai/api/alpha/decisions";
 export const DEFAULT_MODEL = "typesafe/jev-1.13";
 export const RAW_MAX_CHARS = 2000;
+const PRICE_KEY_PATTERN = /\b(price|budget|preis)\b/i;
 
 function parseEnvInt(value: string | undefined, def: number): number {
   const n = parseInt(value ?? "", 10);
@@ -36,11 +37,9 @@ export class JevSpecScorer implements SpecScorer {
             body: JSON.stringify({
               model,
               state: {
-                requirements: spec.requirements.map((r) => ({
-                  key: r.key,
-                  value: r.value,
-                  importance: r.importance,
-                })),
+                requirements: spec.requirements
+                  .filter((r) => !PRICE_KEY_PATTERN.test(r.key))
+                  .map((r) => ({ key: r.key, value: r.value, importance: r.importance })),
                 excludedTerms: spec.excludedTerms ?? [],
                 listing: {
                   title: p.title,
@@ -52,11 +51,11 @@ export class JevSpecScorer implements SpecScorer {
                 fulfills: {
                   type: "noul",
                   instructions:
-                    "Does this marketplace listing fulfill the user's requirements and respect the exclusions?",
+                    "Does this marketplace listing fulfill the user's requirements and respect the exclusions? Ignore any price or budget requirement if one is present — price is evaluated separately and must not affect this judgment.",
                   criteria: {
-                    true: "The listing meets every 'required' requirement, meets 'preferred' requirements where stated, and does not contain or describe any excluded term.",
+                    true: "The listing meets every 'required' requirement (ignoring any price or budget requirement), meets 'preferred' requirements where stated, and does not contain or describe any excluded term.",
                     false:
-                      "The listing misses one or more 'required' requirements, or contains/describes an excluded term.",
+                      "The listing misses one or more 'required' requirements (ignoring any price or budget requirement), or contains/describes an excluded term.",
                   },
                 },
               },

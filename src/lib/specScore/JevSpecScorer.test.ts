@@ -91,6 +91,50 @@ describe("JevSpecScorer", () => {
     expect(body.questions.fulfills.type).toBe("noul");
   });
 
+  it("omits price requirements from state and tells Jev to ignore price", async () => {
+    mockFulfills(0.9);
+    const specWithPrice: DerivedSpec = {
+      ...SPEC,
+      requirements: [
+        { key: "ram", value: "16GB", importance: "required" },
+        { key: "price", value: "under 500 CHF", importance: "required" },
+      ],
+    };
+    await new JevSpecScorer().score([makeProduct({ id: "p1" })], specWithPrice);
+    const fetchMock = vi.mocked(globalThis.fetch);
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(String(init?.body)) as {
+      state: { requirements: { key: string; value: string; importance: string }[] };
+      questions: { fulfills: { instructions: string } };
+    };
+    expect(body.state.requirements).toEqual([
+      { key: "ram", value: "16GB", importance: "required" },
+    ]);
+    expect(body.questions.fulfills.instructions).toContain(
+      "Ignore any price or budget requirement",
+    );
+  });
+
+  it("omits budget requirements from state", async () => {
+    mockFulfills(0.9);
+    const specWithBudget: DerivedSpec = {
+      ...SPEC,
+      requirements: [
+        { key: "ram", value: "16GB", importance: "required" },
+        { key: "budget", value: "under 500 CHF", importance: "required" },
+      ],
+    };
+    await new JevSpecScorer().score([makeProduct({ id: "p1" })], specWithBudget);
+    const fetchMock = vi.mocked(globalThis.fetch);
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(String(init?.body)) as {
+      state: { requirements: { key: string; value: string; importance: string }[] };
+    };
+    expect(body.state.requirements).toEqual([
+      { key: "ram", value: "16GB", importance: "required" },
+    ]);
+  });
+
   it("throws on non-2xx status", async () => {
     mockFulfills(0.9, 429);
     await expect(new JevSpecScorer().score([makeProduct()], SPEC)).rejects.toThrow();

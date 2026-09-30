@@ -44,7 +44,7 @@ export async function POST(req: Request): Promise<Response> {
 
   let spec: DerivedSpec;
   try {
-    spec = await deriveSpecs(query, locale);
+    spec = await deriveSpecs(query, locale, askedQuestions);
     logger.info(`[RITU][SEARCH] derivedSpec=${JSON.stringify(spec)}`);
   } catch (err) {
     if (err instanceof ValidationError) {
