@@ -217,5 +217,31 @@ describe("deriveSpecs", () => {
       };
       expect(call.model).toBe("mock-openai:custom-model");
     });
+
+    it("includes askedQuestions in prompt to resolve vague adjectives", async () => {
+      vi.mocked(generateText).mockResolvedValue({
+        text: JSON.stringify(validSpec),
+      } as never);
+      await deriveSpecs("Sonnenschirmständer small", "de", [
+        "How wide should the bed be? small = 140 cm, medium = 160 cm, large = 180 cm",
+      ]);
+      const call = vi.mocked(generateText).mock.calls[0][0] as {
+        prompt: string;
+      };
+      expect(call.prompt).toContain("Sonnenschirmständer small");
+      expect(call.prompt).toContain("small = 140 cm");
+    });
+
+    it("uses the English system prompt with empty askedQuestions", async () => {
+      vi.mocked(generateText).mockResolvedValue({
+        text: JSON.stringify(validSpec),
+      } as never);
+      await deriveSpecs("laptop for school", "en", []);
+      const call = vi.mocked(generateText).mock.calls[0][0] as {
+        system: string;
+        prompt: string;
+      };
+      expect(call.system).toContain("Swiss second-hand market");
+    });
   });
 });

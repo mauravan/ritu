@@ -35,15 +35,17 @@ function tryParseJsonFromText(text: string): unknown | null {
 
 export async function deriveSpecs(
   input: string,
-  clarifyingAnswer?: string,
   locale: Locale = "de",
+  askedQuestions: string[] = [],
 ): Promise<DerivedSpec> {
   const trimmedInput = input.trim();
   if (trimmedInput.length < 3) throw new ValidationError("Input too short (min 3 chars)");
   const trimmed = trimmedInput.slice(0, 500);
-  const promptText = clarifyingAnswer
-    ? `Original request: ${trimmed}\nClarifying context from user: ${clarifyingAnswer}`
-    : trimmed;
+  const askedContext =
+    askedQuestions.length > 0
+      ? `\n\nPreviously asked clarifying questions. Use their example levels to resolve any vague adjective or bare answer in the request (e.g. if a question mapped "small" to "140 cm", treat "small" in the request as "140 cm" for that attribute):\n${askedQuestions.map((q) => `- ${q}`).join("\n")}`
+      : "";
+  const promptText = askedContext ? `${trimmed}${askedContext}` : trimmed;
   const apiKey = process.env.LLM_API_KEY;
   const baseURL = process.env.LLM_BASE_URL || "https://openrouter.ai/api/v1";
   const model = process.env.LLM_MODEL || "google/gemma-4-31b-it:free";

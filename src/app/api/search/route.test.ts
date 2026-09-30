@@ -79,7 +79,7 @@ describe("search route contracts", () => {
     expect(json.specScoringSource).toBe("deterministic");
     expect(decideSearchAction).toHaveBeenCalledWith("mini pc");
     expect(deriveSpecs).toHaveBeenCalledOnce();
-    expect(deriveSpecs).toHaveBeenCalledWith("mini pc", "de");
+    expect(deriveSpecs).toHaveBeenCalledWith("mini pc", "de", []);
   });
 
   it("clarify decision returns clarifying question without searching", async () => {
@@ -109,7 +109,7 @@ describe("search route contracts", () => {
     );
     expect(res.status).toBe(200);
     expect(decideSearchAction).not.toHaveBeenCalled();
-    expect(deriveSpecs).toHaveBeenCalledWith("mini pc", "de");
+    expect(deriveSpecs).toHaveBeenCalledWith("mini pc", "de", ["What size?", "What budget?"]);
     const json = (await res.json()) as { products: unknown[] };
     expect(json.products.length).toBe(2);
   });
