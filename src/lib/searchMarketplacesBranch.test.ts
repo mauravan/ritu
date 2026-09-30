@@ -89,11 +89,11 @@ describe("searchMarketplaces extended", () => {
     expect(out.map((p) => p.id)).toEqual(["t1"]);
   });
 
-  it("searchMarketplaces slices queries to 3 and survives one-side rejection", async () => {
+  it("searchMarketplaces slices queries to 4 and survives one-side rejection", async () => {
     vi.mocked(searchRicardo).mockRejectedValue(new Error("down"));
     vi.mocked(searchTutti).mockResolvedValue([mkRaw("t1", "tutti", "Unique Tutti Title")]);
     const out = await searchMarketplaces(["a", "b", "c", "d", "e"], "both", 5);
-    expect(vi.mocked(searchTutti).mock.calls.length).toBe(3);
+    expect(vi.mocked(searchTutti).mock.calls.length).toBe(4);
     expect(out.map((p) => p.id)).toEqual(["t1"]);
   });
 

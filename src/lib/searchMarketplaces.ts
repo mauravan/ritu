@@ -86,7 +86,7 @@ export async function searchMarketplaces(
   platform: Platform,
   limit = 20,
 ): Promise<RawProduct[]> {
-  const limitedQueries = searchQueries.slice(0, 3);
+  const limitedQueries = searchQueries.slice(0, 4);
   const ricardoPromises: Promise<RawProduct[]>[] =
     platform === "both" || platform === "ricardo"
       ? limitedQueries.map((q) => searchRicardo(q, limit))
