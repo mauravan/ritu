@@ -4,70 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Platform } from "@/lib/types";
 import SearchForm from "./SearchForm";
 
-describe("SearchForm regression - clarification reset", () => {
-  beforeEach(() => {
-    window.localStorage.setItem("locale", "en");
-  });
-  afterEach(() => {
-    cleanup();
-    window.localStorage.clear();
-  });
-
-  it("answer merges context and re-runs decision; second question works", async () => {
-    const responses = [
-      { clarifyingQuestion: "What size?" },
-      { clarifyingQuestion: "What budget?" },
-      undefined,
-    ];
-    let callIndex = 0;
-    const onSearch = vi.fn(async () => {
-      const next = responses[callIndex++];
-      return next as { clarifyingQuestion: string } | undefined;
-    });
-
-    render(
-      <SearchForm
-        onSearch={onSearch}
-        isLoading={false}
-        error={null}
-        zipCode=""
-        onZipCodeChange={() => undefined}
-      />,
-    );
-
-    fireEvent.change(screen.getByRole("textbox", { name: /what are you looking for/i }), {
-      target: { value: "laptop" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /search$/i }));
-    await waitFor(() =>
-      expect(onSearch).toHaveBeenCalledWith("laptop", "both", {
-        zipCode: undefined,
-        radius: undefined,
-        askedQuestions: [],
-      }),
-    );
-
-    await waitFor(() => expect(screen.getByText("What size?")).toBeDefined());
-
-    fireEvent.change(screen.getByPlaceholderText(/your answer/i), {
-      target: { value: "13 inch" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: /answer & search/i }));
-
-    await waitFor(() =>
-      expect(onSearch).toHaveBeenCalledWith("laptop 13 inch", "both", {
-        zipCode: undefined,
-        radius: undefined,
-        askedQuestions: ["What size?"],
-      }),
-    );
-    await waitFor(() => expect(screen.getByText("What budget?")).toBeDefined());
-    expect(
-      (screen.getByRole("textbox", { name: /what are you looking for/i }) as HTMLInputElement)
-        .value,
-    ).toBe("laptop 13 inch");
-  });
-});
 describe("SearchForm edge cases", () => {
   beforeEach(() => {
     window.localStorage.setItem("locale", "en");
@@ -94,7 +30,7 @@ describe("SearchForm edge cases", () => {
     expect(true).toBe(true);
   });
 
-  it("handles onSearch error and resets awaitingClarification", async () => {
+  it("handles onSearch error", async () => {
     const onSearch = vi.fn(async () => {
       throw new Error("API error");
     });
@@ -135,31 +71,6 @@ describe("SearchForm edge cases", () => {
     );
     const ricardoBtns = screen.getAllByText("Ricardo");
     expect(ricardoBtns[0].disabled).toBe(true);
-  });
-  it("disables platform buttons when awaitingClarification", async () => {
-    const onSearch = vi.fn(async () => ({ clarifyingQuestion: "What size?" }));
-    render(
-      <SearchForm
-        onSearch={onSearch}
-        isLoading={false}
-        error={null}
-        zipCode=""
-        onZipCodeChange={() => undefined}
-      />,
-    );
-    const textareas = screen.getAllByPlaceholderText(
-      /describe what you need|beschreibe dein bed.+rfnis/i,
-    );
-    fireEvent.change(textareas[0], { target: { value: "laptop" } });
-    const buttons = screen.getAllByRole("button", {
-      name: /search$/i,
-    });
-    if (!buttons[0].disabled) {
-      fireEvent.click(buttons[0]);
-      await waitFor(() => expect(screen.getByText(/what size|was gr..s/i)).toBeDefined());
-      const ricardoBtns = screen.getAllByText("Ricardo");
-      expect(ricardoBtns[0].closest("button")?.disabled).toBe(true);
-    }
   });
 });
 

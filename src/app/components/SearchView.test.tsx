@@ -137,19 +137,4 @@ describe("SearchView branches", () => {
     await waitFor(() => expect(screen.getByText(/network down/)).toBeDefined());
   });
 
-  it("shows clarifying question from server", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(
-        async () =>
-          new Response(JSON.stringify({ clarifyingQuestion: "What size?" }), { status: 200 }),
-      ),
-    );
-    render(<SearchView />);
-    fireEvent.change(screen.getByRole("textbox", { name: /what are you looking for/i }), {
-      target: { value: "mini pc" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Search" }));
-    await waitFor(() => expect(screen.getByText("What size?")).toBeDefined());
-  });
 });

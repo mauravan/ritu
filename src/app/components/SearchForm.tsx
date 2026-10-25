@@ -11,13 +11,13 @@ import useLocale from "./useLocale";
 
 const dictionaries = { de, en } as const;
 
-type SearchResponse = SearchResult | { clarifyingQuestion: string } | undefined;
+type SearchResponse = SearchResult | undefined;
 
 type Props = {
   onSearch: (
     query: string,
     platform: Platform,
-    extra?: { zipCode?: string; radius?: number; askedQuestions?: string[] },
+    extra?: { zipCode?: string; radius?: number },
   ) => Promise<SearchResponse>;
   isLoading: boolean;
   error: string | null;
@@ -38,11 +38,7 @@ export default function SearchForm({
 
   const [query, setQuery] = useState("");
   const [platform, setPlatform] = useState<Platform>("both");
-  const [clarifyingQuestion, setClarifyingQuestion] = useState("");
-  const [clarifyingAnswer, setClarifyingAnswer] = useState("");
-  const [askedQuestions, setAskedQuestions] = useState<string[]>([]);
   const [radius, setRadius] = useState<number | "">(20);
-  const awaitingClarification = clarifyingQuestion !== "";
 
   const buildExtra = () => {
     const resolvedRadius = radius === "" ? 20 : radius;
@@ -55,40 +51,7 @@ export default function SearchForm({
     const trimmedQuery = query.trim();
     if (trimmedQuery.length < 3) return;
     try {
-      const response = await onSearch(trimmedQuery, platform, {
-        ...buildExtra(),
-        askedQuestions,
-      });
-      if (response && "clarifyingQuestion" in response && response.clarifyingQuestion) {
-        const q = response.clarifyingQuestion as string;
-        setClarifyingQuestion(q);
-        setAskedQuestions((prev) => (prev.includes(q) ? prev : [...prev, q]));
-        setClarifyingAnswer("");
-      } else {
-        setAskedQuestions([]);
-      }
-    } catch {
-      // error surfaced via `error` prop
-    }
-  };
-
-  const submitAnswer = async () => {
-    const answer = clarifyingAnswer.trim();
-    if (!answer) return;
-    const newContext = `${query.trim()} ${answer}`;
-    setQuery(newContext);
-    setClarifyingQuestion("");
-    setClarifyingAnswer("");
-    try {
-      const response = await onSearch(newContext, platform, { ...buildExtra(), askedQuestions });
-      if (response && "clarifyingQuestion" in response && response.clarifyingQuestion) {
-        const q = response.clarifyingQuestion as string;
-        setClarifyingQuestion(q);
-        setAskedQuestions((prev) => (prev.includes(q) ? prev : [...prev, q]));
-        setClarifyingAnswer("");
-      } else {
-        setAskedQuestions([]);
-      }
+      await onSearch(trimmedQuery, platform, { ...buildExtra() });
     } catch {
       // error surfaced via `error` prop
     }
@@ -96,12 +59,7 @@ export default function SearchForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (awaitingClarification) return;
     void submitSearch();
-  };
-
-  const handleAnswer = () => {
-    void submitAnswer();
   };
 
   const heroTitle = String(
@@ -138,7 +96,7 @@ export default function SearchForm({
           <SearchInput
             query={query}
             setQuery={setQuery}
-            disabled={isLoading || awaitingClarification}
+            disabled={isLoading}
             placeholder={String((dict as Record<string, unknown>).search_placeholder ?? "")}
             label={searchInputLabel}
           />
@@ -152,7 +110,7 @@ export default function SearchForm({
                 platform={platform}
                 setPlatform={setPlatform}
                 dict={dict as Record<string, unknown>}
-                disabled={isLoading || awaitingClarification}
+                disabled={isLoading}
               />
             </div>
             <div className="flex flex-wrap gap-2">
@@ -191,7 +149,7 @@ export default function SearchForm({
               <LoadingButton
                 type="submit"
                 isLoading={isLoading}
-                disabled={isLoading || query.trim().length < 3 || awaitingClarification}
+                disabled={isLoading || query.trim().length < 3}
                 className="bracket-tag px-4 py-1.5 text-xs font-medium rounded-[2px] bg-interface-accent text-on-selection hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer text-center"
               >
                 {String((dict as Record<string, unknown>).search_button ?? "Search")}
@@ -200,35 +158,6 @@ export default function SearchForm({
           </div>
         </div>
 
-        {awaitingClarification && clarifyingQuestion && (
-          <div className="rounded-[2px] border border-marketplace-accent bg-notice-surface p-3 sm:p-4 space-y-3">
-            <p className="text-xs font-semibold text-notice-text">
-              {String((dict as Record<string, unknown>).clarification_title ?? "One more question")}
-            </p>
-            <p className="text-xs sm:text-sm text-notice-text">{clarifyingQuestion}</p>
-            <textarea
-              value={clarifyingAnswer}
-              onChange={(e) => setClarifyingAnswer(e.target.value)}
-              rows={2}
-              disabled={isLoading}
-              placeholder={String(
-                (dict as Record<string, unknown>).clarification_answer_placeholder ?? "Your answer",
-              )}
-              className="w-full rounded-[2px] border border-border bg-panel px-3 py-2 text-xs sm:text-sm text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-focus"
-            />
-            <div className="flex justify-end">
-              <LoadingButton
-                type="button"
-                isLoading={isLoading}
-                disabled={isLoading || !clarifyingAnswer.trim()}
-                onClick={handleAnswer}
-                className="bracket-tag px-4 py-1.5 text-xs font-medium rounded-[2px] bg-interface-accent text-on-selection hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
-              >
-                {String((dict as Record<string, unknown>).answer_and_search ?? "Answer & search")}
-              </LoadingButton>
-            </div>
-          </div>
-        )}
 
         {error && (
           <div

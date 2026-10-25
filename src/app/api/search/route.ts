@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 import { sanitizeSearchQueries } from "@/lib/accessoryGuard";
 import { SpecDerivationError, ValidationError } from "@/lib/errors";
 import { filterByDistance } from "@/lib/geo";
-import { decideSearchAction } from "@/lib/jev/decideSearch";
-import { askClarifyingQuestion } from "@/lib/llm/askClarifying";
 import { deriveSpecs } from "@/lib/llm/deriveSpecs";
 import { runOptionalRerank } from "@/lib/llm/rerank";
 import { logger } from "@/lib/logger";
@@ -20,31 +18,11 @@ import type { DerivedSpec, SearchResult } from "@/lib/types";
 export async function POST(req: Request): Promise<Response> {
   const parsed = await parseSearchRequest(req);
   if (!parsed.ok) return parsed.errorResponse;
-  const { query, platform, locale, askedQuestions, zipCode, radius } = parsed.data;
-
-  const MAX_CLARIFYING_QUESTIONS = 2;
-  const questionsExhausted = askedQuestions.length >= MAX_CLARIFYING_QUESTIONS;
-  if (questionsExhausted) {
-    logger.info(
-      `[RITU][SEARCH] clarifying cap reached (${askedQuestions.length}/${MAX_CLARIFYING_QUESTIONS}) — searching directly`,
-    );
-  }
-
-  const decision = questionsExhausted ? "search" : await decideSearchAction(query);
-  if (decision === "clarify") {
-    try {
-      const question = await askClarifyingQuestion(query, locale, askedQuestions);
-      logger.info(`[RITU][SEARCH] clarifying question="${question.slice(0, 140)}"`);
-      return NextResponse.json({ clarifyingQuestion: question }, { status: 200 });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      logger.warn(`[RITU][SEARCH] askClarifying failed: ${msg} — falling back to direct search`);
-    }
-  }
+  const { query, platform, locale, zipCode, radius } = parsed.data;
 
   let spec: DerivedSpec;
   try {
-    spec = await deriveSpecs(query, locale, askedQuestions);
+    spec = await deriveSpecs(query, locale);
     logger.info(`[RITU][SEARCH] derivedSpec=${JSON.stringify(spec)}`);
   } catch (err) {
     if (err instanceof ValidationError) {
@@ -65,7 +43,12 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   spec.searchQueries = sanitizeSearchQueries(spec);
-  const searchQueries = augmentSearchQueries(spec.searchQueries, spec);
+  const derived = augmentSearchQueries(spec.searchQueries, spec);
+  // Always search the user's original phrasing, plus any derived variants.
+  const original = query.trim();
+  const searchQueries = derived.some((q) => q.toLowerCase() === original.toLowerCase())
+    ? derived
+    : [original, ...derived];
 
   const queries = buildMarketplaceQueries(searchQueries, platform);
   logger.info(

@@ -1,22 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SpecDerivationError, ValidationError } from "@/lib/errors";
-import { decideSearchAction } from "@/lib/jev/decideSearch";
-import { askClarifyingQuestion } from "@/lib/llm/askClarifying";
 import { deriveSpecs } from "@/lib/llm/deriveSpecs";
 import { searchMarketplaces } from "@/lib/searchMarketplaces";
 import type { DerivedSpec, RawProduct } from "@/lib/types";
 import { POST } from "./route";
 
 vi.mock("@/lib/llm/deriveSpecs", () => ({ deriveSpecs: vi.fn() }));
-vi.mock("@/lib/jev/decideSearch", () => ({ decideSearchAction: vi.fn(async () => "search") }));
 vi.mock("@/lib/llm/rerank", () => ({ runOptionalRerank: vi.fn(async () => undefined) }));
 vi.mock("@/lib/specScore/SpecScoreService", () => ({
   getSpecScoreService: vi.fn(() => ({
     score: vi.fn(async () => ({ scores: new Map(), source: "deterministic" })),
   })),
-}));
-vi.mock("@/lib/llm/askClarifying", () => ({
-  askClarifyingQuestion: vi.fn(async () => "What size?"),
 }));
 vi.mock("@/lib/searchMarketplaces", async (importOriginal) => ({
   ...(await importOriginal()),
@@ -57,7 +51,6 @@ function post(body: unknown): Request {
 describe("search route contracts", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(decideSearchAction).mockResolvedValue("search");
     vi.mocked(deriveSpecs).mockResolvedValue({ ...SPEC });
     vi.mocked(searchMarketplaces).mockResolvedValue([mkRaw("p1", "ricardo"), mkRaw("p2", "tutti")]);
   });
@@ -77,51 +70,15 @@ describe("search route contracts", () => {
     expect(json.queries.length).toBeGreaterThanOrEqual(1);
     expect(json.products.length).toBe(2);
     expect(json.specScoringSource).toBe("deterministic");
-    expect(decideSearchAction).toHaveBeenCalledWith("mini pc");
     expect(deriveSpecs).toHaveBeenCalledOnce();
-    expect(deriveSpecs).toHaveBeenCalledWith("mini pc", "de", []);
+    expect(deriveSpecs).toHaveBeenCalledWith("mini pc", "de");
   });
 
-  it("clarify decision returns clarifying question without searching", async () => {
-    vi.mocked(decideSearchAction).mockResolvedValueOnce("clarify");
-    const res = await POST(post({ query: "mini pc" }));
+  it("always searches the original query", async () => {
+    const res = await POST(post({ query: "mini pc 16GB" }));
     expect(res.status).toBe(200);
-    const json = (await res.json()) as { clarifyingQuestion: string };
-    expect(json.clarifyingQuestion).toBe("What size?");
-    expect(searchMarketplaces).not.toHaveBeenCalled();
-    expect(deriveSpecs).not.toHaveBeenCalled();
-  });
-
-  it("clarify decision forwards askedQuestions history to askClarifying", async () => {
-    vi.mocked(decideSearchAction).mockResolvedValueOnce("clarify");
-    const res = await POST(
-      post({ query: "laptop i7", askedQuestions: ["How strong should the CPU be?"] }),
-    );
-    expect(res.status).toBe(200);
-    expect(askClarifyingQuestion).toHaveBeenCalledWith("laptop i7", "de", [
-      "How strong should the CPU be?",
-    ]);
-  });
-
-  it("cap reached with 2 asked questions forces direct search", async () => {
-    const res = await POST(
-      post({ query: "mini pc", askedQuestions: ["What size?", "What budget?"] }),
-    );
-    expect(res.status).toBe(200);
-    expect(decideSearchAction).not.toHaveBeenCalled();
-    expect(deriveSpecs).toHaveBeenCalledWith("mini pc", "de", ["What size?", "What budget?"]);
-    const json = (await res.json()) as { products: unknown[] };
-    expect(json.products.length).toBe(2);
-  });
-
-  it("one asked question still allows a second clarify", async () => {
-    vi.mocked(decideSearchAction).mockResolvedValueOnce("clarify");
-    const res = await POST(post({ query: "mini pc", askedQuestions: ["What size?"] }));
-    expect(res.status).toBe(200);
-    expect(decideSearchAction).toHaveBeenCalledWith("mini pc");
-    const json = (await res.json()) as { clarifyingQuestion: string };
-    expect(json.clarifyingQuestion).toBe("What size?");
-    expect(deriveSpecs).not.toHaveBeenCalled();
+    const json = (await res.json()) as { queries: { query: string }[] };
+    expect(json.queries.map((q) => q.query)).toContain("mini pc 16GB");
   });
 
   it("validation error maps to 400 validation_error", async () => {

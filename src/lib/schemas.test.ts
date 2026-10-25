@@ -116,14 +116,4 @@ describe("schemas contracts", () => {
     expect(SearchRequestSchema.safeParse({ query: "a" }).success).toBe(false);
     expect(SearchRequestSchema.safeParse({ query: "valid" }).success).toBe(true);
   });
-
-  it("SearchRequestSchema accepts askedQuestions history", () => {
-    const result = SearchRequestSchema.safeParse({
-      query: "laptop i7",
-      askedQuestions: ["How strong should the CPU be?"],
-    });
-    expect(result.success).toBe(true);
-    if (result.success)
-      expect(result.data.askedQuestions).toEqual(["How strong should the CPU be?"]);
-  });
 });

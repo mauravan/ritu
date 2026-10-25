@@ -6,7 +6,6 @@ export type ParsedSearchRequest = {
   query: string;
   platform: Platform;
   locale: Locale;
-  askedQuestions: string[];
   zipCode?: string;
   radius?: number;
 };
@@ -43,7 +42,6 @@ export async function parseSearchRequest(req: Request): Promise<ParseSearchReque
       query,
       platform: parsed.data.platform ?? "both",
       locale: parsed.data.locale,
-      askedQuestions: parsed.data.askedQuestions ?? [],
       zipCode: parsed.data.zipCode && parsed.data.radius ? parsed.data.zipCode : undefined,
       radius: parsed.data.zipCode && parsed.data.radius ? parsed.data.radius : undefined,
     },

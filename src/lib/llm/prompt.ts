@@ -66,64 +66,8 @@ Output: category "espressomaschine", requirements [{key:"product",value:"espress
 Sei präzise, konzentriere dich auf Schweizer Gebrauchtmarkt-Suchbegriffe.`,
 };
 
-export const CLARIFYING_SYSTEM_PROMPTS: Record<Locale, string> = {
-  en: 'Ask one clarifying question. Respond ONLY with the question text, no JSON, no quotes. If the user used a vague adjective, state what the adjective refers to (the concrete attribute of this specific product, e.g. "the width of the bed", "the CPU", "the brightness"), explain the relevant unit, and give concrete example levels inside the question, each level mapped to a concrete value (e.g. "small = 140 cm, medium = 160 cm, large = 180 cm"). Preserve the user\'s exact notation — no superscripts, no spelling corrections.',
-  de: 'Stelle eine Rückfrage. Antworte NUR mit dem Fragetext, kein JSON, keine Anführungszeichen. Wenn der Nutzer ein vages Adjektiv verwendet hat, benenne, worauf sich das Adjektiv bezieht (das konkrete Merkmal dieses spezifischen Produkts, z. B. "die Breite des Bettes", "die CPU", "die Helligkeit"), erkläre die relevante Einheit und nenne konkrete Beispielstufen innerhalb der Frage, jede Stufe mit einem konkreten Wert (z. B. "klein = 140 cm, mittel = 160 cm, groß = 180 cm"). Erhalte die exakte Schreibweise des Nutzers — keine Hochstellung, keine Schreibkorrekturen.',
-};
 
 export function getSystemPrompt(locale: Locale): string {
   return SYSTEM_PROMPTS[locale] ?? SYSTEM_PROMPTS.en;
 }
 
-export function getClarifyingSystemPrompt(locale: Locale): string {
-  return CLARIFYING_SYSTEM_PROMPTS[locale] ?? CLARIFYING_SYSTEM_PROMPTS.en;
-}
-
-export function buildClarifyingUserPrompt(
-  query: string,
-  locale: Locale,
-  askedQuestions: string[] = [],
-): string {
-  const q = query.trim().slice(0, 300);
-  const history = askedQuestions
-    .map((s) => s.trim().slice(0, 300))
-    .filter((s) => s.length > 0)
-    .slice(-5);
-  const historyDe =
-    history.length > 0
-      ? `\n\nBereits gestellte Fragen — NICHT wiederholen und NICHT nach demselben Merkmal fragen; frage nach einem ANDEREN fehlenden Merkmal:\n${history.map((s) => `- "${s}"`).join("\n")}`
-      : "";
-  const historyEn =
-    history.length > 0
-      ? `\n\nAlready asked — do NOT repeat these and do NOT ask about the same attribute again; ask about a DIFFERENT missing attribute:\n${history.map((s) => `- "${s}"`).join("\n")}`
-      : "";
-  return locale === "de"
-    ? `Zur Anfrage des Nutzers: "${q}"
-
-Überlege, was dieses Produkt IST und wie es funktioniert. Wenn der Nutzer ein vages Adjektiv verwendet (hell, schnell, leicht, schwer, groß, klein, leistungsstark, leise, langlebig, geräumig, scharf, …), ordne es dem konkreten, messbaren Merkmal zu, das dieses Produkt tatsächlich definiert, benenne die Einheit, benenne, worauf sich das Adjektiv bezieht (z. B. "die Breite des Bettes", "die CPU") und nenne konkrete Beispielstufen (niedrig / mittel / hoch).
-
-Beispiele:
-- "heller Beamer" → Helligkeit wird in Lumen gemessen: "Wie hell soll er sein? ca. 1000 Lumen = dunkel, ca. 3000 Lumen = mittel, ca. 6000 Lumen = hell."
-- "schneller Computer" → "Wie schnell soll die CPU sein? i5 = einfach, i7 = schnell, i9 = sehr schnell."
-- "leichtes Fahrrad" → "Wie leicht soll es sein? ca. 14 kg = schwer, ca. 10 kg = normal, ca. 7 kg = sehr leicht (Carbon)."
-
-Verallgemeinere: Übersetze für JEDES Produkt und JEDES Merkmal das vage Adjektiv in die messbare Spezifikation (Einheit + Beispielstufen).
-
-Frage bei Bedarf auch nach der Preisspanne (Budget in CHF), wenn sie die Suche sinnvoll eingrenzt.${historyDe}
-
-Stelle EINE Rückfrage auf Deutsch. Erkläre kurz die Einheit und nenne Beispielstufen; halte sie prägnant. Antworte auf Deutsch.`
-    : `Given the user request: "${q}"
-
-Think about what this product IS and how it works. If the user used a vague adjective (bright, fast, light, heavy, big, small, powerful, quiet, long-lasting, spacious, sharp, …), map it to the concrete, measurable attribute that defines it for this product, name the unit, state what the adjective refers to (e.g. "the width of the bed", "the CPU"), and give concrete example levels (low / medium / high).
-
-Examples:
-- "bright beamer" → brightness is measured in lumens: "How bright should it be? ~1000 lumens = dim, ~3000 lumens = medium, ~6000 lumens = bright."
-- "fast computer" → "How fast should the CPU be? i5 = basic, i7 = fast, i9 = very fast."
-- "light bicycle" → "How light should it be? ~14 kg = heavy, ~10 kg = normal, ~7 kg = very light (carbon)."
-
-Generalize: for EVERY product and EVERY attribute, translate the vague adjective into the measurable spec (unit + example levels).
-
-Also ask about the price range (budget in CHF) when it would meaningfully narrow the search.${historyEn}
-
-Ask ONE clarifying question in English. Briefly explain the unit and give example levels; keep it concise. Respond in English.`;
-}

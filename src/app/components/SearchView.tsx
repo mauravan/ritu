@@ -35,8 +35,8 @@ export default function SearchView() {
   const handleSearch = async (
     query: string,
     platform: Platform,
-    extra?: { zipCode?: string; radius?: number; askedQuestions?: string[] },
-  ): Promise<SearchResult | { clarifyingQuestion: string } | undefined> => {
+    extra?: { zipCode?: string; radius?: number },
+  ): Promise<SearchResult | undefined> => {
     setIsLoading(true);
     setError(null);
     try {
@@ -51,7 +51,6 @@ export default function SearchView() {
           query,
           platform,
           locale,
-          askedQuestions: extra?.askedQuestions ?? [],
           zipCode: extra?.zipCode,
           radius: extra?.radius,
         }),
@@ -59,16 +58,12 @@ export default function SearchView() {
       const data = (await res.json()) as SearchResult & {
         error?: string;
         details?: string;
-        clarifyingQuestion?: string;
       };
       if (!res.ok) {
         setError(
           data.error ? `${data.error}: ${data.details ?? ""}` : `Search failed: ${res.status}`,
         );
         return undefined;
-      }
-      if (data.clarifyingQuestion && !data.derivedSpec) {
-        return data as { clarifyingQuestion: string };
       }
       setResult(data as SearchResult);
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth" }), 100);

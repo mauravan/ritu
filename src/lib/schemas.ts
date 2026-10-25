@@ -67,7 +67,6 @@ export const SearchRequestSchema = z.object({
   query: z.string().min(3).max(500),
   platform: z.enum(["both", "ricardo", "tutti"]).optional().default("both"),
   locale: z.enum(["de", "en"]).optional().default("de"),
-  askedQuestions: z.array(z.string().max(500)).max(10).optional().default([]),
   zipCode: z
     .string()
     .regex(/^\d{4}$/)
